@@ -205,13 +205,15 @@ pub fn integrate(comptime T:type) void {
                 if(fnInfo.args.len == 0 and (fnInfo.return_type == null or fnInfo.return_type.? == void)) {
                     T.slingIntegration();
                 } else {
-                    std.debug.panic("'slingIntegration' on type {s} failed, it should be a function with no args and no return type.", .{@typeName(T)});
+                    @compileError("'slingIntegration' on type "++@typeName(T)++" failed, it should be a function with no args and no return type.");
                 }
             },
             else => { 
-                std.debug.panic("'slingIntegration' on type {s} failed, it should be a function with no args and no return type.", .{@typeName(T)});
+                @compileError("'slingIntegration' on type "++@typeName(T)++" failed, it should be a function with no args and no return type.");
             }
         }
+    } else {
+        @compileError("There is no slingIntegration on type "++@typeName(T));
     }
 }
 pub fn addStaticInit(func: fn() void) void {

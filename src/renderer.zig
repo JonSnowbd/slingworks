@@ -128,6 +128,7 @@ pub fn init() Self {
     var pixel: sling.asset.Texture = .{
         .internal = zt.gl.Texture.initBlank(1, 1),
     };
+    pixel.whitePixel = zt.math.rect(0,0,1,1);
     pixel.internal.bind();
     var white = [_]u8{ 255, 255, 255 };
     gl.glTexImage2D(gl.GL_TEXTURE_2D, 0, gl.GL_RGB, 1, 1, 0, gl.GL_RGB, gl.GL_UNSIGNED_BYTE, &white);
@@ -160,7 +161,7 @@ pub fn flush(self: *Self) void {
 }
 
 fn flushBuffer(self: *Self, target: *std.ArrayList(RenderRequest)) void {
-    var lastTexture: ?*sling.asset.Texture = null;
+    var lastTexture: ?*sling.asset.Texture = &self.whitePixelTex;
     var lastShader: ?sling.Shader = null;
 
     std.sort.sort(RenderRequest, target.items, SortingBehaviour, sort);

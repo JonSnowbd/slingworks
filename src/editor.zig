@@ -121,7 +121,7 @@ fn menu() void {
         if(sling.room) |idx| {
             if (ig.igBeginMenu("<- Back", true)) {
                 sling.room = null;
-                if(sling.register.RegisteredRooms[idx].items[idx].deinitMethod) |deinit| {
+                if(sling.register.RegisteredRooms.items[idx].deinitMethod) |deinit| {
                     deinit();
                 }
                 ig.igEndMenu();

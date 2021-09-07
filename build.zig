@@ -1,12 +1,20 @@
 const std = @import("std");
 const ztBuild = @import("src/deps/ZT/build.zig");
 
+fn getRelativePath() []const u8 {
+    comptime var src: std.builtin.SourceLocation = @src();
+    return std.fs.path.dirname(src.file).? ++ std.fs.path.sep_str;
+}
+
+
 pub fn link(exe: *std.build.LibExeObjStep) void {
+    comptime var path = getRelativePath();
+
     ztBuild.link(exe.builder, exe, exe.target);
     const slingPkg = std.build.Pkg {
         .name = "sling",
         .path = .{
-            .path = "src/sling.zig",
+            .path = path++"src/sling.zig",
         },
         .dependencies = &[_]std.build.Pkg{
             ztBuild.ztPackage(),
