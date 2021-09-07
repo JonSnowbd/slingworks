@@ -1,0 +1,18 @@
+# zig
+zig-out/
+zig-cache/
+
+# misc
+/build/
+/build-*/
+/docgen_tmp/
+
+# slingwork
+imgui.ini
+workspace
+settings
+
+# fmod
+.cache/
+.unsaved/
+.user/
