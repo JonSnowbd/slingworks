@@ -187,6 +187,7 @@ fn _jsonLexParseInner(allocator:*std.mem.Allocator, bytes:[]const u8) !*serializ
                     i+=1;
                 }
             },
+            '-',
             48...57 => {
                 var start = i;
                 var end = i+1;
