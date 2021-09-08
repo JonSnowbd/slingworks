@@ -11,6 +11,7 @@ pub const util = @import("util.zig");
 pub const register = @import("register.zig");
 pub const fmod = @import("fmod.zig");
 pub const audio = @import("audio.zig");
+pub const physics = @import("physics.zig");
 const editor = @import("editor.zig");
 
 const Renderer = @import("renderer.zig");
