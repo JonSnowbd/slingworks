@@ -61,18 +61,18 @@ the game up in editor like `zig build run -- editor` or `zig-out/bin/yourgame.ex
 
 # But..
 
-- Wheres the example?
+### Wheres the example?
 
 For now Slingworks will stand with basic tutorials and very very basic 
 examples, but stay tuned for an all encompassing example in a separate
 repo!
 
-- My built game requested local network permissions?
+### My built game requested local network permissions?
 
 This is because debug builds initialize FMod Studio with net connection
 for live audio authoring.
 
-- My game crashes trying to de/serialize something?
+### My game crashes trying to de/serialize something?
 
 The serializer should handle every reasonable type including basic
 array lists and string hashmaps, but it is unavoidable to crash if you
