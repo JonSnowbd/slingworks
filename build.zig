@@ -6,7 +6,6 @@ fn getRelativePath() []const u8 {
     return std.fs.path.dirname(src.file).? ++ std.fs.path.sep_str;
 }
 
-
 pub fn link(exe: *std.build.LibExeObjStep) void {
     comptime var path = getRelativePath();
 

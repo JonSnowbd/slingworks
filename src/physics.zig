@@ -62,3 +62,7 @@ pub fn sweepRect(mover: sling.math.Rect, static: sling.math.Rect, velocity: slin
 
     return et;
 }
+
+pub inline fn hitscanRect(scanStart: sling.math.Vec2, scanEnd: sling.math.Vec2, target: sling.math.Rect) bool {
+    return zt.game.Physics.isLineInRect(scanStart, scanEnd, target.position, target.size);
+}

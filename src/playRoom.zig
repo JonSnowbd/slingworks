@@ -1,26 +1,37 @@
 const std = @import("std");
 const ig = @import("imgui");
-const sling = @import("sling");
+const sling = @import("sling.zig");
 
-const PlayerType = @import("playerEntity.zig").Player;
-
-var initFn = std.once(init);
 var scene: *sling.Scene = undefined;
+var exiting: bool = false;
 
-fn init() void {
-    scene = sling.Scene.initSpoof(.{PlayerType});
-    if(scene.spawn(PlayerType)) |player| {
-        player.controller = 0;
+pub fn init() void {
+    sling.inEditor = false;
+    if(sling.scene) |internalScene| {
+        var bytes = internalScene.toBytes(sling.alloc);
+        defer sling.alloc.free(bytes);
+        scene = sling.Scene.initFromBytes(bytes);
+    } else {
+        exiting = true;
     }
+    sling.inEditor = true;
+}
+pub fn deinit() void {
+    scene.deinit();
+    scene.* = undefined;
 }
 
 pub fn roomMethod() void {
-    initFn.call();
-    if(sling.inEditor) {
-        sling.inEditor = false;
-        scene.update();
-        sling.inEditor = true;
-    } else {
-        scene.update();
+    if(sling.input.Key.escape.down()) {
+        exiting = true;
     }
+    if(exiting) {
+        sling.leaveRoom();
+        exiting = false;
+        return;
+    }
+
+    sling.inEditor = false;
+    scene.update();
+    sling.inEditor = true;
 }

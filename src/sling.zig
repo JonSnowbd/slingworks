@@ -2,6 +2,20 @@ const std = @import("std");
 const ig = @import("imgui");
 const glfw = @import("glfw");
 
+// Private items
+const PlayRoom = @import("playRoom.zig");
+const editor = @import("editor.zig");
+const Renderer = @import("renderer.zig");
+const SlingSettings = struct {
+    initialScene: ?[]const u8 = null,
+    rememberWindowSettings: bool = true,
+    wasMaximizedLast: bool = false,
+    windowPos: math.Vec2 = .{ .x=200, .y=200 },
+    windowSize: math.Vec2 = .{ .x = 1280, .y = 720 },
+    debugView: bool = false,
+};
+
+// Public namespaces and forwards
 pub const zt = @import("zt");
 pub const input = @import("input.zig");
 pub const math = zt.math;
@@ -12,9 +26,8 @@ pub const register = @import("register.zig");
 pub const fmod = @import("fmod.zig");
 pub const audio = @import("audio.zig");
 pub const physics = @import("physics.zig");
-const editor = @import("editor.zig");
 
-const Renderer = @import("renderer.zig");
+// Public types and forwards
 pub const Camera = @import("camera.zig");
 pub const Depth = Renderer.Depth;
 pub const Object = @import("object.zig");
@@ -23,15 +36,6 @@ pub const Shader = zt.gl.Shader;
 pub const Vertex = zt.game.Renderer.Vertex;
 
 pub const alloc = std.heap.c_allocator;
-
-const SlingSettings = struct {
-    initialScene: ?[]const u8 = null,
-    rememberWindowSettings: bool = true,
-    wasMaximizedLast: bool = false,
-    windowPos: math.Vec2 = .{ .x=200, .y=200 },
-    windowSize: math.Vec2 = .{ .x = 1280, .y = 720 },
-    debugView: bool = false,
-};
 
 pub var time: f32 = 0.0;
 pub var dt: f32 = 0.0;
@@ -98,6 +102,8 @@ fn initialize() void {
     
     var io = ig.igGetIO();
     io.*.ConfigFlags |= ig.ImGuiConfigFlags_DockingEnable;
+
+    register.room(PlayRoom.roomMethod, "Test Scene", PlayRoom.init, PlayRoom.deinit);
 
     render = Renderer.init();
     for(staticInits.items) |ifn| {
@@ -174,13 +180,13 @@ fn serializeSling() void {
     defer alloc.free(settingsBytes);
 
 
-    std.fs.cwd().writeFile("settings", settingsBytes) catch {
+    std.fs.cwd().writeFile("settings.json", settingsBytes) catch {
         std.debug.panic("Failed to write sling settings to disk.", .{});
     };
 }
 fn deserializeSling() void {
     // 5mb max
-    var settingsFile = std.fs.cwd().readFileAlloc(alloc, "settings", 5_000_000) catch {
+    var settingsFile = std.fs.cwd().readFileAlloc(alloc, "settings.json", 5_000_000) catch {
         std.debug.print("Failed to find sling settings file.\n", .{});
         return;
     };
@@ -241,8 +247,8 @@ pub fn igFontBytes(bytes: []const u8, size: f32) *ig.ImFont {
     var io = ig.igGetIO();
     var cfg = ig.ImFontConfig_ImFontConfig();
     cfg.*.SizePixels = size;
-    cfg.*.OversampleH = 1;
-    cfg.*.OversampleV = 1;
+    cfg.*.OversampleH = 2;
+    cfg.*.OversampleV = 2;
     var range = ig.ImFontAtlas_GetGlyphRangesDefault(io.*.Fonts);
     var font = ig.ImFontAtlas_AddFontFromMemoryTTF(io.*.Fonts, copied.ptr, @intCast(c_int,bytes.len), size, cfg, range);
     ctx.rebuildFont();
@@ -257,4 +263,21 @@ pub fn igSetFontFilter(nearest:bool) void {
     } else {
         fontTex.setLinearFilter();
     }
+}
+
+pub fn enterRoom(index: usize) void {
+    if(room != null) {
+        leaveRoom();
+    }
+    var target = register.RegisteredRooms.items[index];
+    if(target.initMethod) |ifn| {
+        ifn();
+    }
+    room = index;
+}
+pub fn leaveRoom() void {
+    if(register.RegisteredRooms.items[room.?].deinitMethod) |dfn| {
+        dfn();
+    }
+    room = null;
 }

@@ -3,6 +3,7 @@ const sling = @import("sling.zig");
 const Self = @This();
 
 pub const EditorData = struct {
+    filePath: ?[]const u8 = null,
     selectedObjectGroup: usize = 0,
     selectedEntity: usize = 0,
 };
@@ -43,6 +44,9 @@ pub fn initSpoof(comptime children: anytype) *Self {
 }
 
 pub fn deinit(self: *Self) void {
+    if(self.editorData.filePath != null) {
+        sling.alloc.free(self.editorData.filePath.?);
+    }
     self.baseObject.deinitAll(self.baseObject);
     self.baseObject.arena.deinit();
     self.baseObject = undefined;
@@ -54,7 +58,6 @@ pub fn deinit(self: *Self) void {
     sling.alloc.free(self.childObjects);
     self.* = undefined;
     sling.alloc.destroy(self);
-
 }
 
 pub fn initFromInfo(sceneRegister: sling.register.SceneRegister) *Self {
@@ -119,7 +122,11 @@ pub fn initFromFilepath(path: []const u8) *Self {
     var bytes = std.fs.cwd().readFileAlloc(sling.alloc, path, 80_000_000) catch unreachable;
     defer sling.alloc.free(bytes);
 
-    return initFromBytes(bytes);
+    var self = initFromBytes(bytes);
+
+    var ownedPath = sling.alloc.dupeZ(u8, path) catch unreachable;
+    self.editorData.filePath = ownedPath;
+    return self;
 }
 
 pub fn update(self: *Self) void {
