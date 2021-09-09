@@ -3,21 +3,18 @@ const zt = @import("zt");
 const sling = @import("sling.zig");
 const ig = @import("imgui");
 
-var possibleLevels = std.ArrayList([]const u8).init(sling.alloc);
-var isSaving: ?bool = null;
-var fileWrite: [512:0]u8 = std.mem.zeroes([512:0]u8);
+const menu = @import("editor/menu.zig");
 
 var demoOpen: bool = false;
 
 pub fn editorUI() void {
     controls();
-    menu();
+    menu.update();
     if(sling.scene) |scene| {
         if(sling.room == null) {
             objectEditor(scene);
         }
     }
-    saveLoadInterface();
 }
 
 fn controls() void {
@@ -112,141 +109,6 @@ fn objectEditor(scene: *sling.Scene) void {
             }
         }
     
-    }
-    ig.igEnd();
-}
-
-fn menu() void {
-    if (ig.igBeginMainMenuBar()) {
-        if(sling.room) |idx| {
-            if (ig.igBeginMenu("<- Back", true)) {
-                sling.room = null;
-                if(sling.register.RegisteredRooms.items[idx].deinitMethod) |deinit| {
-                    deinit();
-                }
-                ig.igEndMenu();
-            }
-        }
-        // Creation tab
-        if (ig.igBeginMenu("File", sling.room == null)) {
-            newSceneMenu();
-            ig.igSeparator();
-            if(ig.igMenuItem_Bool("Save", "CTRL+S", false, true)) {
-                isSaving = true;
-                fileWrite = std.mem.zeroes([512:0]u8);
-                refreshLevels();
-            }
-            if(ig.igMenuItem_Bool("Load", "CTRL+O", false, true)) {
-                isSaving = false;
-                fileWrite = std.mem.zeroes([512:0]u8);
-                refreshLevels();
-            }
-            ig.igEndMenu();
-        }
-        if (ig.igBeginMenu("Room", true)) {
-            for(sling.register.RegisteredRooms.items) |room, i| {
-                if(ig.igMenuItem_Bool(room.name.ptr, null, false, true)) {
-                    sling.room = i;
-                }
-            }
-            ig.igEndMenu();
-        }
-        if (ig.igBeginMenu("Misc", true)) {
-            if(ig.igMenuItem_Bool("ImGui Demo", null, demoOpen, true)) {
-                demoOpen = !demoOpen;
-            }
-            ig.igEndMenu();
-        }
-        ig.igEndMainMenuBar();
-    }
-    if(demoOpen) {
-        ig.igShowDemoWindow(&demoOpen);
-    }
-}
-
-fn newSceneMenu() void {
-    if(ig.igBeginMenu("New", true)) {
-        var registers = sling.register.RegisteredScenes.valueIterator();
-        while(registers.next()) |sceneRegister| {
-            var cast: *sling.register.SceneRegister = sceneRegister;
-            var baseInfo = sling.Object.Information.get(cast.base);
-            if(ig.igMenuItem_Bool(baseInfo.name.ptr, null, false, true)) {
-                sling.scene = sling.Scene.initFromInfo(cast.*);
-            }
-        }
-        ig.igEndMenu();
-    }
-}
-
-fn refreshLevels() void {
-    for(possibleLevels.items) |item| {
-        sling.alloc.free(item);
-    }
-    possibleLevels.clearRetainingCapacity();
-    _search("") catch |err| {
-        std.debug.panic("Failed to search the local folders for scenes:\n{s}", .{@errorName(err)});
-    };
-}
-
-fn _search(path: []const u8) anyerror!void {
-    var currentPath = try std.fs.cwd().openDir(path, .{.iterate=true});
-    defer currentPath.close();
-    var iterator = currentPath.iterate();
-    while(try iterator.next()) |item| {
-        var cast: std.fs.Dir.Entry = item;
-        switch(cast.kind) {
-            .Directory => {
-                var fullPath = try std.fs.path.join(sling.alloc, &[_][]const u8 { path, cast.name });
-                defer sling.alloc.free(fullPath);
-                try _search(fullPath);
-            },
-            .File => {
-                var ext = std.fs.path.extension(cast.name);
-                if(std.mem.eql(u8, ext, ".scene") or std.mem.eql(u8, ext, ".sc")) {
-                    try possibleLevels.append(try sling.alloc.dupeZ(u8, cast.name));
-                }
-            },
-            else => {}
-        }
-
-    }
-}
-fn saveLoadInterface() void {
-    if(isSaving == null) {
-        return;
-    }
-    if(ig.igBegin("Save/Load", null, ig.ImGuiWindowFlags_None)) {
-        _ = sling.util.igEdit("File Location", &fileWrite);
-        if(ig.igButton("Refresh", .{})) {
-            refreshLevels();
-        }
-        ig.igSameLine(0, 4);
-        if(isSaving.? == true) {
-            if(ig.igButton("Save##SLING_SAVE_SAVE_BUTTON", .{})) {
-                isSaving = null;
-                var bytes = sling.scene.?.toBytes(sling.alloc);
-                defer sling.alloc.free(bytes);
-                std.fs.cwd().writeFile(std.mem.spanZ(&fileWrite), bytes) catch unreachable;
-            }
-        } else {
-            if(ig.igButton("Load##SLING_SAVE_LOAD_BUTTON", .{})) {
-                isSaving = null;
-                if(sling.scene) |scene| {
-                    scene.deinit();
-                    sling.scene = null;
-                }
-                sling.scene = sling.Scene.initFromFilepath(std.mem.spanZ(&fileWrite));
-            }
-        }
-        ig.igSeparator();
-        for(possibleLevels.items) |path| {
-            if(ig.igSelectable_Bool(path.ptr, std.mem.eql(u8, path, std.mem.spanZ(&fileWrite)), ig.ImGuiSelectableFlags_SpanAvailWidth, .{})) {
-                fileWrite = std.mem.zeroes([512:0]u8);
-                for(path) |byte, j| {
-                    fileWrite[j] = byte;
-                }
-            }
-        }
     }
     ig.igEnd();
 }
