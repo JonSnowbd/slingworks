@@ -34,7 +34,6 @@ pub const Information = struct {
             std.debug.panic("Failed to register object information index: {any} at {any}", .{info,id});
         };
     }
-
     pub fn get(id: usize) *const Information {
         return registeredObjects.items[id];
     }
@@ -120,34 +119,35 @@ pub fn GenBuildData(comptime T: type) type {
                 if(self.canRun()) {
                     inline for(std.meta.declarations(T)) |declField| {
                         if(declField.is_pub) {
-                            var name: []const u8 = declField.name;
-                            if(std.mem.eql(u8,name,self.func)) {
-                                const fnTypeInfo = @typeInfo(@TypeOf(@field(T, declField.name)));
-                                const feed = ArgType(fnTypeInfo);
-                                var paramList: feed = undefined;
-                                inline for(fnTypeInfo.Fn.args) |fnArg, i| {
-                                    if(fnArg.arg_type) |parameter| {
-                                        switch(parameter) {
-                                            *sling.Scene => {
-                                                paramList[i] = scene;
-                                            },
-                                            *T => {
-                                                paramList[i] = target;
-                                            },
-                                            usize => {
-                                                paramList[i] = 0;
-                                            },
-                                            else => {
-                                                @compileError("Cant find that service.");
+                            const fnTypeInfo = @typeInfo(@TypeOf(@field(T, declField.name)));
+                            if(fnTypeInfo == .Fn and fnTypeInfo.Fn.args.len > 0) {
+                                var name: []const u8 = declField.name;
+                                if(std.mem.eql(u8,name,self.func)) {
+                                    const feed = ArgType(fnTypeInfo);
+                                    var paramList: feed = undefined;
+                                    inline for(fnTypeInfo.Fn.args) |fnArg, i| {
+                                        if(fnArg.arg_type) |parameter| {
+                                            switch(parameter) {
+                                                *sling.Scene => {
+                                                    paramList[i] = scene;
+                                                },
+                                                *T => {
+                                                    paramList[i] = target;
+                                                },
+                                                usize => {
+                                                    paramList[i] = 0;
+                                                },
+                                                else => {}
                                             }
+                                        }else {
+                                            @compileError("Typeless parameter?");
                                         }
-                                    } else {
-                                        @compileError("Typeless parameter?");
                                     }
+                                    const func = @field(T,declField.name);
+                                    const site = std.builtin.CallOptions{};
+                                    _ = @call(site, func, paramList);
+                                    return;
                                 }
-                                const site = std.builtin.CallOptions{};
-                                _ = @call(site, @field(T,declField.name), paramList);
-                                return;
                             }
                         }
                     }
@@ -204,38 +204,34 @@ pub fn GenBuildData(comptime T: type) type {
         };
 
         allocator: *std.mem.Allocator,
-        hidden: std.StringHashMap(void),
-        init: std.ArrayList(FnWrap),
-        deinitFn: std.ArrayList(FnWrap),
-        update: std.ArrayList(FnWrap),
-
-        getName: ?fn(*T) []const u8,
-
-        editorExtension: ?fn(*T) void,
-        selectedEditor: ?fn(*T) void,
+        _hidden: std.StringHashMap(void),
+        _init: std.ArrayList(FnWrap),
+        _deinitFn: std.ArrayList(FnWrap),
+        _update: std.ArrayList(FnWrap),
+        _getName: ?fn(*T) []const u8,
+        _editorExtension: ?FnWrap,
 
         fn initBuildData(allocator: *std.mem.Allocator) @This() {
             return .{
                 .allocator = allocator,
-                .hidden = std.StringHashMap(void).init(allocator),
-                .init = std.ArrayList(FnWrap).init(allocator),
-                .deinitFn = std.ArrayList(FnWrap).init(allocator),
-                .update = std.ArrayList(FnWrap).init(allocator),
-                .getName = null,
-                .editorExtension = null,
-                .selectedEditor = null,
+                ._hidden = std.StringHashMap(void).init(allocator),
+                ._init = std.ArrayList(FnWrap).init(allocator),
+                ._deinitFn = std.ArrayList(FnWrap).init(allocator),
+                ._update = std.ArrayList(FnWrap).init(allocator),
+                ._getName = null,
+                ._editorExtension = null,
             };
         }
 
         pub fn deinit(self:*@This()) void {
-            self.hidden.deinit();
-            self.deinitFn.deinit();
-            self.init.deinit();
-            self.update.deinit();
+            self._hidden.deinit();
+            self._deinitFn.deinit();
+            self._init.deinit();
+            self._update.deinit();
         }
 
         pub fn hide(self: *@This(), comptime field: std.meta.FieldEnum(T)) void {
-            self.hidden.put(@tagName(field), {}) catch |err| {
+            self._hidden.put(@tagName(field), {}) catch |err| {
                 std.debug.panic("Failed to ignore field '{s}' from type '{s}' due to:\n{s}", .{@tagName(field), @typeName(T), @errorName(err)});
             };
         }
@@ -244,28 +240,25 @@ pub fn GenBuildData(comptime T: type) type {
             sling.preferredSerializationConfig.ignore(T, @tagName(field));
         }
         pub fn initMethod(self: *@This(), comptime method: sling.util.DeclEnum(T), comptime clearance: Clearance) void {
-            self.init.append(FnWrap.init(@tagName(method), clearance)) catch |err| {
+            self._init.append(FnWrap.init(@tagName(method), clearance)) catch |err| {
                 std.debug.panic("Failed to add init system '{s}' to type '{s}' due to:\n{s}", .{@tagName(method), @typeName(T), @errorName(err)});
             };
         }
         pub fn deinitMethod(self: *@This(), comptime method: sling.util.DeclEnum(T), comptime clearance: Clearance) void {
-            self.deinitFn.append(FnWrap.init(@tagName(method), clearance)) catch |err| {
+            self._deinitFn.append(FnWrap.init(@tagName(method), clearance)) catch |err| {
                 std.debug.panic("Failed to add init system '{s}' to type '{s}' due to:\n{s}", .{@tagName(method), @typeName(T), @errorName(err)});
             };
         }
         pub fn nameMethod(self: *@This(), comptime method: sling.util.DeclEnum(T)) void {
-            self.getName = @field(T,@tagName(method));
+            self._getName = @field(T, @tagName(method));
         }
         pub fn updateMethod(self: *@This(), comptime method: sling.util.DeclEnum(T), comptime clearance: Clearance) void {
-            self.update.append(FnWrap.init(@tagName(method), clearance)) catch |err| {
+            self._update.append(FnWrap.init(@tagName(method), clearance)) catch |err| {
                 std.debug.panic("Failed to add update system '{s}' to type '{s}' due to:\n{s}", .{@tagName(method), @typeName(T), @errorName(err)});
             };
         }
-        pub fn igEditorExtension(self: *@This(), comptime editorFn: fn(*T) void) void {
-            self.editorExtension = editorFn;
-        }
-        pub fn igSelectedEditor(self: *@This(), comptime editorFn: fn(*T) void) void {
-            self.selectedEditor = editorFn;
+        pub fn editorExtension(self: *@This(), comptime method: sling.util.DeclEnum(T)) void {
+            self._editorExtension = FnWrap.init(@tagName(method), .editorOnly);
         }
 
         pub fn register() *@This() {
@@ -282,7 +275,9 @@ pub fn GenBuildData(comptime T: type) type {
 }
 
 fn ArgType(comptime Fn: std.builtin.TypeInfo) type {
-    std.debug.assert(Fn == .Fn);
+    if(Fn != .Fn) {
+        @compileError(std.fmt.comptimePrint("Type '{any}' doesnt fit the format for a method call.", .{Fn}));
+    }
     return comptime blk: {
         var fields: [Fn.Fn.args.len]std.builtin.TypeInfo.StructField = undefined;
         for (fields) |*f, idx| {
@@ -368,7 +363,7 @@ pub fn CollectionType(comptime T: type) type {
             };
             instance.parent = scene;
             node.into(&instance.value, &instance.interface.arena.allocator);
-            for(build.init.items) |wrapper| {
+            for(build._init.items) |wrapper| {
                 wrapper.updateArray(instance.value, instance.parent);
             }
             return &instance.interface;
@@ -381,10 +376,13 @@ pub fn CollectionType(comptime T: type) type {
             var build = GenBuildData(T).register();
             var self: *Self = getSelf(object);
             inline for(std.meta.fields(T)) |fieldInfo| {
-                if(!build.hidden.contains(fieldInfo.name) and !sling.preferredSerializationConfig.ignores(T, fieldInfo.name)) {
+                if(!build._hidden.contains(fieldInfo.name) and !sling.preferredSerializationConfig.ignores(T, fieldInfo.name)) {
                     var fieldRef = &@field(self.value[index], fieldInfo.name);
                     _ = sling.util.igEdit(fieldInfo.name, fieldRef);
                 }
+            }
+            if(build._editorExtension) |extension| {
+                extension.updateSingular(&self.value[index], self.parent);
             }
         }
         fn interface_serialize(object: *Interface, tree: *sling.serializer.Tree) *sling.serializer.Node {
@@ -394,7 +392,7 @@ pub fn CollectionType(comptime T: type) type {
         fn interface_update(object: *Interface) void {
             var build = GenBuildData(T).register();
             var self: *Self = getSelf(object);
-            for(build.update.items) |wrapper| {
+            for(build._update.items) |wrapper| {
                 wrapper.updateArray(self.value, self.parent);
             }
         }
@@ -405,7 +403,7 @@ pub fn CollectionType(comptime T: type) type {
                 std.debug.panic("Failed to realloc internal object array of size {any}", .{self.value.len});
             };
             self.value[self.value.len-1] = .{};
-            for(build.init.items) |wrapper| {
+            for(build._init.items) |wrapper| {
                 wrapper.updateSingular(&self.value[self.value.len-1], self.parent);
             }
         }
@@ -413,7 +411,7 @@ pub fn CollectionType(comptime T: type) type {
             var self: *Self = getSelf(object);
             var build = GenBuildData(T).register();
 
-            for(build.deinitFn.items) |wrapper| {
+            for(build._deinitFn.items) |wrapper| {
                 wrapper.updateArray(self.value, self.parent);
             }
         }
@@ -421,7 +419,7 @@ pub fn CollectionType(comptime T: type) type {
             var self: *Self = getSelf(object);
             var build = GenBuildData(T).register();
 
-            for(build.deinitFn.items) |wrapper| {
+            for(build._deinitFn.items) |wrapper| {
                 wrapper.updateArray(self.value, self.parent);
             }
             self.value[index] = self.value[self.value.len-1];
@@ -437,7 +435,7 @@ pub fn CollectionType(comptime T: type) type {
             var self: *Self = getSelf(object);
             var build = GenBuildData(T).register();
 
-            if(build.getName) |gn| {
+            if(build._getName) |gn| {
                 return gn(&self.value[index]);
             } else {
                 return zt.custom_components.fmtTextForImgui("{s}#{any}", .{GenBuildData(T).information.name, index});
@@ -481,7 +479,7 @@ pub fn SingletonType(comptime T: type) type {
             instance.parent = scene;
 
             instance.value = .{};
-            for(build.init.items) |wrapper| {
+            for(build._init.items) |wrapper| {
                 wrapper.updateSingular(&instance.value, instance.parent);
             }
             return &instance.interface;
@@ -507,7 +505,7 @@ pub fn SingletonType(comptime T: type) type {
             instance.parent = scene;
 
             node.into(&instance.value, &instance.interface.arena.allocator);
-            for(build.init.items) |wrapper| {
+            for(build._init.items) |wrapper| {
                 wrapper.updateSingular(&instance.value, instance.parent);
             }
             return &instance.interface;
@@ -521,10 +519,13 @@ pub fn SingletonType(comptime T: type) type {
 
             var self: *Self = getSelf(object);
             inline for(std.meta.fields(T)) |fieldInfo| {
-                if(!build.hidden.contains(fieldInfo.name) and !sling.preferredSerializationConfig.ignores(T, fieldInfo.name)) {
+                if(!build._hidden.contains(fieldInfo.name) and !sling.preferredSerializationConfig.ignores(T, fieldInfo.name)) {
                     var fieldRef = &@field(self.value, fieldInfo.name);
                     _ = sling.util.igEdit(fieldInfo.name, fieldRef);
                 }
+            }
+            if(build._editorExtension) |extension| {
+                extension.updateSingular(&self.value, self.parent);
             }
         }
         fn interface_serialize(object: *Interface, tree: *sling.serializer.Tree) *sling.serializer.Node {
@@ -535,14 +536,14 @@ pub fn SingletonType(comptime T: type) type {
             var self: *Self = getSelf(object);
             var build = GenBuildData(T).register();
 
-            for(build.deinitFn.items) |wrapper| {
+            for(build._deinitFn.items) |wrapper| {
                 wrapper.updateSingular(&self.value, self.parent);
             }
         }
         fn interface_update(object: *Interface) void {
             var build = GenBuildData(T).register();
             var self: *Self = getSelf(object);
-            for(build.update.items) |wrapper| {
+            for(build._update.items) |wrapper| {
                 wrapper.updateSingular(&self.value, self.parent);
             }
         }
