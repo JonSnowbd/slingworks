@@ -18,7 +18,6 @@ pub fn init() void {
 }
 pub fn deinit() void {
     scene.deinit();
-    scene.* = undefined;
 }
 
 pub fn roomMethod() void {
