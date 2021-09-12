@@ -115,6 +115,23 @@ pub fn igEdit(label: []const u8, ptr:anytype) bool {
         }
     }
 
+    if(ti == .Enum) {
+        var returnValue: bool = false;
+        var integer = @enumToInt(ptr.*);
+        
+        if(ig.igBeginCombo(label.ptr, @tagName(ptr.*).ptr, ig.ImGuiComboFlags_None)) {
+            inline for(ti.Enum.fields) |enumField, i| {
+                //label: [*c]const u8, selected: bool, flags: ImGuiSelectableFlags, size: ImVec2
+                if(ig.igSelectable_Bool(enumField.name.ptr, i == integer, ig.ImGuiSelectableFlags_None, .{})) {
+                    ptr.* = @intToEnum(@TypeOf(ptr.*), i);
+                    returnValue = true;
+                }
+            }
+            ig.igEndCombo();
+        }
+        return returnValue;
+    }
+
     if(ti == .Optional) {
         if(ptr.* == null) {
             zt.custom_components.ztTextDisabled("{s} (null)", .{label});

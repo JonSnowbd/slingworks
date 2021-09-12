@@ -376,7 +376,7 @@ pub const Node = struct {
         if(isArrayList(T)) |listType| {
             ptr.* = std.ArrayList(listType).init(alloc);
             for(self.data.Array.items) |item| {
-                var castItem:listType = undefined;
+                var castItem:listType = .{};
                 item.into(&castItem, owner);
                 ptr.append(castItem) catch unreachable;
             }
@@ -387,7 +387,7 @@ pub const Node = struct {
             ptr.* = std.StringHashMap(hashVal).init(alloc);
             var iterator = self.data.Map.iterator();
             while(iterator.next()) |entry| {
-                var castItem: hashVal = undefined;
+                var castItem: hashVal = .{};
                 entry.value_ptr.*.into(&castItem, owner);
                 ptr.put(entry.key_ptr.*, castItem) catch unreachable;
             }
@@ -423,18 +423,16 @@ pub const Node = struct {
                     ptr.* = real;
                 }
             },
+            .Enum => {
+                std.debug.assert(self.data == .Literal and self.data.Literal == .Integer);
+                ptr.* = @intToEnum(T, self.data.Literal.Integer);
+            },
             .Struct => {
                 std.debug.assert(self.data == .Map);
-
-                if(self.tree.config) |config| {
-                    // todo
-                    _ = config;
-                } else {
-                    inline for(typeInfo.Struct.fields) |field| {
-                        var fieldNode = self.data.Map.get(field.name);
-                        if(fieldNode) |node| {
-                            node.into(&@field(ptr.*, field.name), owner);
-                        }
+                inline for(typeInfo.Struct.fields) |field| {
+                    var fieldNode = self.data.Map.get(field.name);
+                    if(fieldNode) |node| {
+                        node.into(&@field(ptr.*, field.name), owner);
                     }
                 }
             },
@@ -447,6 +445,7 @@ pub const Node = struct {
                 } else {
                     std.debug.assert(self.data == .Array);
                     for(self.data.Array.items) |item, i| {
+                        ptr.*[i] = .{};
                         item.into(&ptr.*[i], owner);
                     }
                 }
@@ -456,6 +455,7 @@ pub const Node = struct {
                     .Slice => {
                         var slice = alloc.alloc(typeInfo.Pointer.child, self.data.Array.items.len) catch unreachable;
                         for(slice) |*item, i| {
+                            item.* = .{};
                             self.data.Array.items[i].into(item, owner);
                         }
                         ptr.* = slice;
@@ -479,32 +479,9 @@ pub const Node = struct {
                     }
                 }
             },
-            else => {std.debug.panic("Failed to deserialize\n", .{});}
+            else => {std.debug.panic("Failed to deserialize type {s}\n", .{@typeName(T)});}
         }
     }
-
-    // pub fn format(self: Node, comptime fmt: []const u8, options: std.fmt.FormatOptions, writer: anytype) !void {
-    //     _ = options;
-    //     _ = fmt;
-    //     switch(self.data) {
-    //         .Map => {
-    //             var nodes = self.data.Map.iterator();
-    //             try writer.print("Map:", .{});
-    //             while(nodes.next()) |pair| {
-    //                 try writer.print("\"{s}\":{s}\n", .{pair.key_ptr.*, pair.value_ptr.*.*});
-    //             }
-    //         },
-    //         .Array => {
-    //             try writer.print("Array:", .{});
-    //             for(self.data.Array.items) |value| {
-    //                 try writer.print("{s},\n", .{value});
-    //             }
-    //         },
-    //         .Literal => {
-    //             try writer.print("<{any}>", .{self.data.Literal});
-    //         },
-    //     }
-    // }
 };
 
 fn isArrayList(comptime T: type) ?type {
