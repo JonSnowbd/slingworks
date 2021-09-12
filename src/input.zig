@@ -5,8 +5,10 @@ const sling = @import("sling.zig");
 const ig = @import("imgui");
 const glfw = @import("glfw");
 
+pub var worldMouseDelta: sling.math.Vec2 = .{};
 pub var worldMouse: sling.math.Vec2 = .{};
 pub var mouse: sling.math.Vec2 = .{};
+pub var mouseDelta: sling.math.Vec2 = .{};
 pub var mwheel: f32 = 0;
 
 var io: [*c]ig.ImGuiIO = undefined;
@@ -181,14 +183,21 @@ pub const Key = enum(c_int) {
     }
 };
 
+
+var prevWorldMouse: sling.math.Vec2 = .{.x=-1,.y=-1};
 pub fn pump() void {
     io = ig.igGetIO();
     mouse = io.*.MousePos;
+    mouseDelta = io.*.MouseDelta;
     worldMouse = sling.render.camera.screenToWorld(mouse);
-
+    if(prevWorldMouse.x == -1.0 and prevWorldMouse.y == -1.0) {
+        prevWorldMouse = worldMouse;
+    }
+    worldMouseDelta = worldMouse.sub(prevWorldMouse);
     if(config.imguiBlocksInput and io.*.WantCaptureMouse) {
         mwheel = 0;
     } else {
         mwheel = io.*.MouseWheel;
     }
+    prevWorldMouse = worldMouse;
 }
