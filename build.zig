@@ -1,6 +1,20 @@
 const std = @import("std");
 const ztBuild = @import("src/deps/ZT/build.zig");
 
+// ZLS kinda freaks out about not having a build file to parse, so this is
+// a dummy build.
+pub fn build(b: *std.build.Builder) void {
+    const target = b.standardTargetOptions(.{});
+    const mode = b.standardReleaseOptions();
+
+    const exe = b.addExecutable("fake", "./fakeMain.zig");
+    link(exe);
+    exe.linkLibC();
+    exe.setTarget(target);
+    exe.setBuildMode(mode);
+    exe.install();
+}
+
 fn getRelativePath() []const u8 {
     comptime var src: std.builtin.SourceLocation = @src();
     return std.fs.path.dirname(src.file).? ++ std.fs.path.sep_str;
