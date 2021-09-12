@@ -8,7 +8,7 @@ const gl = @import("deps/ZT/src/pkg/gl.zig");
 const Self = @This();
 pub const Space = enum { screen, world };
 pub const Patch = struct {
-    subRect: ?sling.math.Rect = null,
+    subRect: sling.math.Rect = .{},
     left:f32 = 0,
     top:f32 = 0,
     right:f32 = 0,
@@ -257,19 +257,17 @@ fn flushBuffer(self: *Self, target: *std.ArrayList(RenderRequest)) void {
     }
     self.renderer.flush();
 }
-pub fn raw(self: *Self, space: Space, req: RenderRequest) void {
-    _ = self;
-    _ = req;
-    _ = space;
-}
 
 pub fn createShader(self: *Self, content: [*:0]const u8) sling.Shader {
     _ = self;
     return zt.game.Renderer.createShader(content);
 }
+/// Sets the shader for the next render requests you submit. Make sure to `popShader`
+/// when you're done with the shader.
 pub fn pushShader(self: *Self, shader: sling.Shader) void {
     self.currentShader = shader;
 }
+/// Ends the current shader until you set a new one.
 pub fn popShader(self: *Self) void {
     self.currentShader = null;
 }
@@ -336,22 +334,55 @@ pub fn quad(self: *Self, space: Space, depth: Depth, textureId: usize, verts: [4
     } } }) catch unreachable;
 }
 
+// todo make it scalable, and make it squish to fit smaller than smallest dimensions.
+pub fn patch(self:*Self, space: Space, depth:Depth, patchInfo:Patch, textureId: usize, destination: sling.math.Rect, color: sling.math.Vec4) void {
+    const dpos = destination.position;
+    const dsiz = destination.size;
+    const spos = patchInfo.subRect.position;
+    const ssiz = patchInfo.subRect.size;
 
-// todo
-// pub fn blankQuad(self: *Self, space: Space, depth: Depth, verts: [4]sling.Vertex, color: sling.math.Vec4) void {
-//     var targetBuffer = if (space == .world) &self.worldRequests else &self.screenRequests;
-//     targetBuffer.append(.{ .depth = depth, .shader=self.currentShader, .data = .{ .Quad = .{
-//         .verts = verts,
-//         .targetTexture = textureId,
-//         .tint = color,
-//         .source = sourceRect,
-//     } } }) catch unreachable;
-// }
+    // Corners
+    const tl = sling.math.rect(dpos.x, dpos.y, patchInfo.left, patchInfo.top);
+    const tls = sling.math.rect(spos.x, spos.y, patchInfo.left, patchInfo.top);
+    const tr = sling.math.rect(dpos.x+dsiz.x-patchInfo.right, dpos.y, patchInfo.right, patchInfo.top);
+    const trs = sling.math.rect(ssiz.x-patchInfo.right, spos.y, patchInfo.right, patchInfo.top);
+    const bl = sling.math.rect(dpos.x, dpos.y+dsiz.y-patchInfo.bottom, patchInfo.left, patchInfo.bottom);
+    const bls = sling.math.rect(spos.x, spos.y+ssiz.y-patchInfo.bottom, patchInfo.left, patchInfo.bottom);
+    const br = sling.math.rect(dpos.x+dsiz.x-patchInfo.right, dpos.y+dsiz.y-patchInfo.bottom, patchInfo.right, patchInfo.bottom);
+    const brs = sling.math.rect(spos.x+ssiz.x-patchInfo.right, spos.y+ssiz.y-patchInfo.bottom, patchInfo.right, patchInfo.bottom);
 
-// todo
-// pub fn patch(self:*Self, space: Space, depth:Depth, patch:Patch, textureId: usize, destination: sling.math.Rect, color: sling.math.Vec4) void {
+    self.texture(space, depth, textureId, tl.position, tl.size, color, tls, null);
+    self.texture(space, depth, textureId, tr.position, tr.size, color, trs, null);
+    self.texture(space, depth, textureId, bl.position, bl.size, color, bls, null);
+    self.texture(space, depth, textureId, br.position, br.size, color, brs, null);
 
-// }
+    // Checks for middle pieces.
+    const tm = sling.math.rect(dpos.x+patchInfo.left, dpos.y, dsiz.x-patchInfo.left-patchInfo.right, patchInfo.top);
+    if(tm.size.x > 0.0) {
+        const tms = sling.math.rect(spos.x+patchInfo.left,spos.y,ssiz.x-patchInfo.left-patchInfo.right, patchInfo.top);
+        self.texture(space, depth, textureId, tm.position, tm.size, color, tms, null);
+    }
+    const bm = sling.math.rect(dpos.x+patchInfo.left, dpos.y+dsiz.y-patchInfo.bottom, dsiz.x-patchInfo.left-patchInfo.right, patchInfo.bottom);
+    if(tm.size.x > 0.0) {
+        const bms = sling.math.rect(spos.x+patchInfo.left,spos.y+ssiz.y-patchInfo.bottom,ssiz.x-patchInfo.left-patchInfo.right, patchInfo.top);
+        self.texture(space, depth, textureId, bm.position, bm.size, color, bms, null);
+    }
+    const ml = sling.math.rect(dpos.x, dpos.y+patchInfo.top, patchInfo.left, dsiz.y-patchInfo.top-patchInfo.bottom);
+    if(ml.size.y > 0.0) {
+        const mls = sling.math.rect(spos.x,spos.y+patchInfo.top,patchInfo.left,ssiz.y-patchInfo.top-patchInfo.bottom);
+        self.texture(space, depth, textureId, ml.position, ml.size, color, mls, null);
+    }
+    const mr = sling.math.rect(dpos.x+dsiz.x-patchInfo.right, dpos.y+patchInfo.top, patchInfo.right, dsiz.y-patchInfo.top-patchInfo.bottom);
+    if(ml.size.y > 0.0) {
+        const mrs = sling.math.rect(spos.x+ssiz.x-patchInfo.right,spos.y+patchInfo.top,patchInfo.left,ssiz.y-patchInfo.top-patchInfo.bottom);
+        self.texture(space, depth, textureId, mr.position, mr.size, color, mrs, null);
+    }
+    const m = sling.math.rect(dpos.x+patchInfo.left, dpos.y+patchInfo.top, dsiz.x-patchInfo.left-patchInfo.right, dsiz.y-patchInfo.top-patchInfo.bottom);
+    if(ml.size.y > 0.0 and tm.size.x > 0.0) {
+        const ms = sling.math.rect(spos.x+patchInfo.left,spos.y+patchInfo.top, ssiz.x-patchInfo.left-patchInfo.right,ssiz.y-patchInfo.top-patchInfo.bottom);
+        self.texture(space, depth, textureId, m.position, m.size, color, ms, null);
+    }
+}
 
 pub fn rectangle(self: *Self, space: Space, depth: Depth, rect: sling.math.Rect, color: sling.math.Vec4, thickness: ?f32) void {
     var targetBuffer = if (space == .world) &self.worldRequests else &self.screenRequests;

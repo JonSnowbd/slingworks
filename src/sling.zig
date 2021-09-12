@@ -26,6 +26,7 @@ pub const register = @import("register.zig");
 pub const fmod = @import("fmod.zig");
 pub const audio = @import("audio.zig");
 pub const physics = @import("physics.zig");
+pub const handles = @import("handle.zig");
 
 // Public types and forwards
 pub const Camera = @import("camera.zig");
@@ -34,6 +35,7 @@ pub const Object = @import("object.zig");
 pub const Scene = @import("scene.zig");
 pub const Shader = zt.gl.Shader;
 pub const Vertex = zt.game.Renderer.Vertex;
+pub const Patch = Renderer.Patch;
 
 pub const alloc = std.heap.c_allocator;
 
