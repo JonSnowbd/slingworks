@@ -8,10 +8,10 @@ pub fn build(b: *std.build.Builder) void {
     const mode = b.standardReleaseOptions();
 
     const exe = b.addExecutable("fake", "./fakeMain.zig");
-    link(exe);
     exe.linkLibC();
     exe.setTarget(target);
     exe.setBuildMode(mode);
+    link(exe);
     exe.install();
 }
 
@@ -27,11 +27,11 @@ pub fn link(exe: *std.build.LibExeObjStep) void {
     const slingPkg = std.build.Pkg{ .name = "sling", .path = .{
         .path = path ++ "src/sling.zig",
     }, .dependencies = &[_]std.build.Pkg{
-        ztBuild.ztPackage(),
-        ztBuild.glfwPackage(),
-        ztBuild.glPackage(),
-        ztBuild.imguiPackage(),
-        ztBuild.stbPackage(),
+        ztBuild.ztPkg,
+        ztBuild.glfwPkg,
+        ztBuild.glPkg,
+        ztBuild.imguiPkg,
+        ztBuild.stbPkg,
     } };
     exe.addPackage(slingPkg);
 
