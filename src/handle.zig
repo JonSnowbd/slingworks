@@ -6,10 +6,10 @@ pub const config = struct {
     /// If you want to change which key is used to drag handles, this is
     /// your way in.
     pub var lockKey: sling.input.Key = .lmb;
-    pub var normalColor: sling.math.Vec4 = sling.math.vec4(0.7,0.9,0.4,0.8);
-    pub var hoveredColor: sling.math.Vec4 = sling.math.vec4(0.8,0.6,0.3,0.95);
-    pub var heldColor: sling.math.Vec4 = sling.math.vec4(0.9,0.9,0.7,1.0);
-    pub var mutedColor: sling.math.Vec4 = sling.math.vec4(0.3,0.5,0.1,0.1);
+    pub var normalColor: sling.math.Vec4 = sling.math.vec4(0.7, 0.9, 0.4, 0.8);
+    pub var hoveredColor: sling.math.Vec4 = sling.math.vec4(0.8, 0.6, 0.3, 0.95);
+    pub var heldColor: sling.math.Vec4 = sling.math.vec4(0.9, 0.9, 0.7, 1.0);
+    pub var mutedColor: sling.math.Vec4 = sling.math.vec4(0.3, 0.5, 0.1, 0.1);
     pub var blipSize: f32 = 5;
     pub var handleLength: f32 = 15;
     pub var padding: f32 = 4;
@@ -31,33 +31,33 @@ pub fn positionHandle(vector: *sling.math.Vec2, flipHandles: bool, offset: ?slin
     const mouse = sling.input.worldMouse;
     const delta = sling.input.worldMouseDelta;
 
-    const length = config.handleLength/sling.render.camera.zoom;
-    const size = config.blipSize/sling.render.camera.zoom;
-    const padding = config.padding/sling.render.camera.zoom;
-    const target: sling.math.Vec2 = if(offset != null) vector.add(offset.?) else vector.*;
+    const length = config.handleLength / sling.render.camera.zoom;
+    const size = config.blipSize / sling.render.camera.zoom;
+    const padding = config.padding / sling.render.camera.zoom;
+    const target: sling.math.Vec2 = if (offset != null) vector.add(offset.?) else vector.*;
 
     var col = config.normalColor;
     var xAxisHandle = sling.math.rect(
-        target.x-length-size-padding,
-        target.y-size*0.5,
+        target.x - length - size - padding,
+        target.y - size * 0.5,
         length,
         size,
     );
     var yAxisHandle = sling.math.rect(
-        target.x-size*0.5,
-        target.y-length-size-padding,
+        target.x - size * 0.5,
+        target.y - length - size - padding,
         size,
         length,
     );
-    if(flipHandles) {
-        xAxisHandle.position.x += (length+size+padding)+(padding*2);
-        yAxisHandle.position.y += (length+size+padding)+(padding*2);
+    if (flipHandles) {
+        xAxisHandle.position.x += (length + size + padding) + (padding * 2);
+        yAxisHandle.position.y += (length + size + padding) + (padding * 2);
     }
-    if(locked) |lockId| {
-        if(lockId == callSite) {
+    if (locked) |lockId| {
+        if (lockId == callSite) {
             col = config.heldColor;
-            if(mode) |modeId| {
-                switch(modeId) {
+            if (mode) |modeId| {
+                switch (modeId) {
                     centerClick => {
                         vector.*.x += delta.x;
                         vector.*.y += delta.y;
@@ -71,7 +71,7 @@ pub fn positionHandle(vector: *sling.math.Vec2, flipHandles: bool, offset: ?slin
                     else => {},
                 }
             }
-            if(config.lockKey.released()) {
+            if (config.lockKey.released()) {
                 locked = null;
                 mode = null;
             }
@@ -80,23 +80,23 @@ pub fn positionHandle(vector: *sling.math.Vec2, flipHandles: bool, offset: ?slin
         }
     } else {
         const clicked = config.lockKey.pressed();
-        if(mouse.distanceTo(target) < size) {
+        if (mouse.distanceTo(target) < size) {
             col = config.hoveredColor;
-            if(clicked) {
+            if (clicked) {
                 mode = centerClick;
                 locked = callSite;
             }
         }
-        if(xAxisHandle.containsPoint(mouse)) {
+        if (xAxisHandle.containsPoint(mouse)) {
             col = config.hoveredColor;
-            if(clicked) {
+            if (clicked) {
                 mode = xClick;
                 locked = callSite;
             }
         }
-        if(yAxisHandle.containsPoint(mouse)) {
+        if (yAxisHandle.containsPoint(mouse)) {
             col = config.hoveredColor;
-            if(clicked) {
+            if (clicked) {
                 mode = yClick;
                 locked = callSite;
             }

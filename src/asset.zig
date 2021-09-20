@@ -42,7 +42,6 @@ pub fn fetchCopy(comptime T: type, path: []const u8) T {
     return getCopy(T, id);
 }
 
-
 /// This returns an index that points to the asset that was loaded
 /// (or was already loaded). Use this to store runtime information,
 /// and do not serialize/deserialize this index as it can change
@@ -70,11 +69,11 @@ fn load(comptime T: type, path: []const u8) T {
         Texture => {
             var tex = Texture{
                 .internal = zt.gl.Texture.init(path) catch |err| {
-                    std.debug.panic("Failed to load image into asset: {s}:\n{s}", .{path, @errorName(err)});
+                    std.debug.panic("Failed to load image into asset: {s}:\n{s}", .{ path, @errorName(err) });
                 },
                 .whitePixel = null,
             };
-            if(Texture.preferNearestFilter) {
+            if (Texture.preferNearestFilter) {
                 tex.internal.setNearestFilter();
             }
             return tex;

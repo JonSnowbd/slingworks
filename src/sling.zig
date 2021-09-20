@@ -10,7 +10,7 @@ const SlingSettings = struct {
     initialScene: ?[]const u8 = null,
     rememberWindowSettings: bool = true,
     wasMaximizedLast: bool = false,
-    windowPos: math.Vec2 = .{ .x=200, .y=200 },
+    windowPos: math.Vec2 = .{ .x = 200, .y = 200 },
     windowSize: math.Vec2 = .{ .x = 1280, .y = 720 },
     debugView: bool = false,
 };
@@ -54,7 +54,7 @@ pub var preferredLexicon: serializer.Lexicon = serializer.json.JsonLexicon;
 
 var ctx: *zt.App(void).Context = undefined;
 
-var staticInits = std.ArrayList(fn() void).init(alloc);
+var staticInits = std.ArrayList(fn () void).init(alloc);
 
 pub fn run() void {
     parseArgs();
@@ -77,10 +77,10 @@ fn parseArgs() void {
 
     // Set the cwd path to the exe folder. If something needs to work based on calling from another directory,
     // I recommend using another way to reach those resources.
-    if(zt.known_folders.getPath(alloc, .executable_dir) catch unreachable) |exePath| {
+    if (zt.known_folders.getPath(alloc, .executable_dir) catch unreachable) |exePath| {
         defer alloc.free(exePath);
         std.process.changeCurDir(exePath) catch {
-            std.debug.print("Failed to chdir to local executable folder.\n",.{});
+            std.debug.print("Failed to chdir to local executable folder.\n", .{});
         };
     }
 }
@@ -101,18 +101,18 @@ fn initialize() void {
         ctx.setWindowSize(@floatToInt(c_int, settings.windowSize.x), @floatToInt(c_int, settings.windowSize.y));
         glfw.glfwSetWindowPos(ctx.window, @floatToInt(c_int, settings.windowPos.x), @floatToInt(c_int, settings.windowPos.y));
     }
-    
+
     var io = ig.igGetIO();
     io.*.ConfigFlags |= ig.ImGuiConfigFlags_DockingEnable;
 
     register.room(PlayRoom.roomMethod, "Test Scene", PlayRoom.init, PlayRoom.deinit);
 
     render = Renderer.init();
-    for(staticInits.items) |ifn| {
+    for (staticInits.items) |ifn| {
         ifn();
     }
 
-    if(!inEditor and settings.initialScene != null) {
+    if (!inEditor and settings.initialScene != null) {
         var bytes = std.fs.cwd().readFileAlloc(alloc, settings.initialScene.?, 80_000_000) catch unreachable;
         defer alloc.free(bytes);
         scene = Scene.initFromBytes(bytes);
@@ -145,9 +145,9 @@ fn loop() void {
             editor.editorUI();
         }
 
-        if(room) |roomIdx| {
+        if (room) |roomIdx| {
             register.RegisteredRooms.items[roomIdx].method();
-        } else if(scene) |currentScene| {
+        } else if (scene) |currentScene| {
             currentScene.update();
         }
 
@@ -158,7 +158,7 @@ fn loop() void {
 }
 fn serializeSling() void {
     // Serialize settings.
-    if(settings.rememberWindowSettings) {
+    if (settings.rememberWindowSettings) {
         var w: c_int = 0;
         var h: c_int = 0;
         var x: c_int = 0;
@@ -166,12 +166,12 @@ fn serializeSling() void {
         glfw.glfwGetWindowSize(ctx.window, &w, &h);
         glfw.glfwGetWindowPos(ctx.window, &x, &y);
 
-        if(glfw.glfwGetWindowAttrib(ctx.window, glfw.GLFW_MAXIMIZED) == 1) {
+        if (glfw.glfwGetWindowAttrib(ctx.window, glfw.GLFW_MAXIMIZED) == 1) {
             settings.wasMaximizedLast = true;
         } else {
             settings.wasMaximizedLast = false;
-            settings.windowPos = .{.x=@intToFloat(f32, x),.y=@intToFloat(f32, y)};
-            settings.windowSize = .{.x=@intToFloat(f32, w),.y=@intToFloat(f32, h)};
+            settings.windowPos = .{ .x = @intToFloat(f32, x), .y = @intToFloat(f32, y) };
+            settings.windowSize = .{ .x = @intToFloat(f32, w), .y = @intToFloat(f32, h) };
         }
     }
 
@@ -180,7 +180,6 @@ fn serializeSling() void {
     defer tree.deinit();
     var settingsBytes = preferredLexicon.convert(alloc, tree);
     defer alloc.free(settingsBytes);
-
 
     std.fs.cwd().writeFile("settings.json", settingsBytes) catch {
         std.debug.panic("Failed to write sling settings to disk.", .{});
@@ -207,25 +206,25 @@ pub fn configure(comptime T: type) *Object.GenBuildData(T) {
 }
 /// Use this to automatically register a type into sling if it contains a
 /// `slingIntegration` function of type `fn() void`
-pub fn integrate(comptime T:type) void {
-    if(@hasDecl(T, "slingIntegration")) {
-        switch(@typeInfo(@TypeOf(@field(T, "slingIntegration")))) {
+pub fn integrate(comptime T: type) void {
+    if (@hasDecl(T, "slingIntegration")) {
+        switch (@typeInfo(@TypeOf(@field(T, "slingIntegration")))) {
             .Fn => |fnInfo| {
-                if(fnInfo.args.len == 0 and (fnInfo.return_type == null or fnInfo.return_type.? == void)) {
+                if (fnInfo.args.len == 0 and (fnInfo.return_type == null or fnInfo.return_type.? == void)) {
                     T.slingIntegration();
                 } else {
-                    @compileError("'slingIntegration' on type "++@typeName(T)++" failed, it should be a function with no args and no return type.");
+                    @compileError("'slingIntegration' on type " ++ @typeName(T) ++ " failed, it should be a function with no args and no return type.");
                 }
             },
-            else => { 
-                @compileError("'slingIntegration' on type "++@typeName(T)++" failed, it should be a function with no args and no return type.");
-            }
+            else => {
+                @compileError("'slingIntegration' on type " ++ @typeName(T) ++ " failed, it should be a function with no args and no return type.");
+            },
         }
     } else {
-        @compileError("There is no slingIntegration on type "++@typeName(T));
+        @compileError("There is no slingIntegration on type " ++ @typeName(T));
     }
 }
-pub fn addStaticInit(func: fn() void) void {
+pub fn addStaticInit(func: fn () void) void {
     staticInits.append(func) catch {
         std.debug.panic("Failed to append static initializer", .{});
     };
@@ -238,7 +237,7 @@ pub fn setWindowIcon(path: []const u8) void {
 }
 pub fn setBackgroundColor(color: math.Vec4) void {
     const gl = @import("gl");
-    gl.glClearColor(color.x,color.y,color.z,color.w);
+    gl.glClearColor(color.x, color.y, color.z, color.w);
 }
 pub fn igFontPath(path: []const u8, size: f32) *ig.ImFont {
     return ctx.addFont(path, size);
@@ -252,15 +251,15 @@ pub fn igFontBytes(bytes: []const u8, size: f32) *ig.ImFont {
     cfg.*.OversampleH = 2;
     cfg.*.OversampleV = 2;
     var range = ig.ImFontAtlas_GetGlyphRangesDefault(io.*.Fonts);
-    var font = ig.ImFontAtlas_AddFontFromMemoryTTF(io.*.Fonts, copied.ptr, @intCast(c_int,bytes.len), size, cfg, range);
+    var font = ig.ImFontAtlas_AddFontFromMemoryTTF(io.*.Fonts, copied.ptr, @intCast(c_int, bytes.len), size, cfg, range);
     ctx.rebuildFont();
 
     return font;
 }
-pub fn igSetFontFilter(nearest:bool) void {
+pub fn igSetFontFilter(nearest: bool) void {
     var io = ig.igGetIO();
-    var fontTex = zt.gl.Texture.from(@intCast(c_uint,@ptrToInt(io.*.Fonts.*.TexID)), true);
-    if(nearest) {
+    var fontTex = zt.gl.Texture.from(@intCast(c_uint, @ptrToInt(io.*.Fonts.*.TexID)), true);
+    if (nearest) {
         fontTex.setNearestFilter();
     } else {
         fontTex.setLinearFilter();
@@ -268,17 +267,17 @@ pub fn igSetFontFilter(nearest:bool) void {
 }
 
 pub fn enterRoom(index: usize) void {
-    if(room != null) {
+    if (room != null) {
         leaveRoom();
     }
     var target = register.RegisteredRooms.items[index];
-    if(target.initMethod) |ifn| {
+    if (target.initMethod) |ifn| {
         ifn();
     }
     room = index;
 }
 pub fn leaveRoom() void {
-    if(register.RegisteredRooms.items[room.?].deinitMethod) |dfn| {
+    if (register.RegisteredRooms.items[room.?].deinitMethod) |dfn| {
         dfn();
     }
     room = null;

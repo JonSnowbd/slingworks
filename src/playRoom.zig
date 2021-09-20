@@ -7,7 +7,7 @@ var exiting: bool = false;
 
 pub fn init() void {
     sling.inEditor = false;
-    if(sling.scene) |internalScene| {
+    if (sling.scene) |internalScene| {
         var bytes = internalScene.toBytes(sling.alloc);
         defer sling.alloc.free(bytes);
         scene = sling.Scene.initFromBytes(bytes);
@@ -21,10 +21,10 @@ pub fn deinit() void {
 }
 
 pub fn roomMethod() void {
-    if(sling.input.Key.escape.down()) {
+    if (sling.input.Key.escape.down()) {
         exiting = true;
     }
-    if(exiting) {
+    if (exiting) {
         sling.leaveRoom();
         exiting = false;
         return;

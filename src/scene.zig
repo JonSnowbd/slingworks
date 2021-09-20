@@ -19,7 +19,9 @@ isSpoof: bool = false,
 /// an empty scene.
 pub fn init(comptime baseType: type) Self {
     var fetch = sling.register.RegisteredScenes.get(@typeName(baseType));
-    if(fetch == null) {std.debug.panic("Initializing a scene that isnt configured", .{});}
+    if (fetch == null) {
+        std.debug.panic("Initializing a scene that isnt configured", .{});
+    }
     var sceneRegister: sling.register.SceneRegister = fetch.?;
     return initFromInfo(sceneRegister);
 }
@@ -39,11 +41,11 @@ pub fn initSpoof(comptime children: anytype) *Self {
 
     self.childObjects = sling.alloc.alloc(*sling.Object.Interface, children.len) catch unreachable;
 
-    inline for(children) |child, i| {
+    inline for (children) |child, i| {
         var info = sling.Object.GenBuildData(child).information;
         self.editorData.objectToIndex.put(info.name, i) catch unreachable;
         self.childObjects[i] = info.create(self);
-    } 
+    }
 
     return self;
 }
@@ -52,7 +54,7 @@ pub fn deinit(self: *Self) void {
     self.baseObject.deinitAll(self.baseObject);
     self.baseObject.arena.deinit();
     self.baseObject = undefined;
-    for(self.childObjects) |*co| {
+    for (self.childObjects) |*co| {
         co.*.deinitAll(co.*);
         co.*.arena.deinit();
         co.* = undefined;
@@ -67,7 +69,7 @@ pub fn initFromInfo(sceneRegister: sling.register.SceneRegister) *Self {
     self.* = .{};
     self.baseObject = sling.Object.Information.get(sceneRegister.base).createSingleton(self);
     self.childObjects = sling.alloc.alloc(*sling.Object.Interface, sceneRegister.dependants.items.len) catch unreachable;
-    for(self.childObjects) |*obj, i| {
+    for (self.childObjects) |*obj, i| {
         var info = sling.Object.Information.get(sceneRegister.dependants.items[i]);
         self.editorData.objectToIndex.put(info.name, i) catch unreachable;
         obj.* = info.create(self);
@@ -83,11 +85,11 @@ pub fn initFromBytes(data: []const u8) *Self {
     var self: *Self = sling.alloc.create(Self) catch unreachable;
     self.* = .{};
 
-    if(parsed.root.data.Map.get("scene_type")) |node| {
+    if (parsed.root.data.Map.get("scene_type")) |node| {
         std.debug.assert(node.data == .Literal and node.data.Literal == .String);
         var ObjectSlice = sling.Object.Information.slice();
-        for(ObjectSlice) |info| {
-            if(std.mem.eql(u8, info.name, node.data.Literal.String)) {
+        for (ObjectSlice) |info| {
+            if (std.mem.eql(u8, info.name, node.data.Literal.String)) {
                 var sceneObject = parsed.root.data.Map.get("scene").?;
                 self.baseObject = info.createSingletonFrom(sceneObject, self);
                 var sceneRegister = sling.register.RegisteredScenes.get(info.name).?;
@@ -100,20 +102,20 @@ pub fn initFromBytes(data: []const u8) *Self {
         std.debug.panic("Failed to find a scene_type definition in the provided bytes:\n{s}", .{data});
     }
 
-    if(parsed.root.data.Map.get("children")) |childrenList| {
+    if (parsed.root.data.Map.get("children")) |childrenList| {
         std.debug.assert(childrenList.data == .Map);
 
         var iter = childrenList.data.Map.iterator();
         var slice = sling.Object.Information.slice();
         var i: usize = 0;
-        while(iter.next()) |pair| {
-            for(slice) |info| {
-                if(std.mem.eql(u8, pair.key_ptr.*, info.name)) {
+        while (iter.next()) |pair| {
+            for (slice) |info| {
+                if (std.mem.eql(u8, pair.key_ptr.*, info.name)) {
                     self.editorData.objectToIndex.put(info.name, i) catch unreachable;
                     self.childObjects[i] = info.createFrom(pair.value_ptr.*, self);
                 }
             }
-            i+=1;
+            i += 1;
         }
     } else {
         std.debug.panic("Failed to find a children definition in the provided bytes:\n{s}", .{data});
@@ -135,18 +137,18 @@ pub fn initFromFilepath(path: []const u8) *Self {
 }
 /// You don't need to call this, the game does this for you.
 pub fn update(self: *Self) void {
-    if(!self.isSpoof) {
+    if (!self.isSpoof) {
         self.baseObject.update(self.baseObject);
     }
 
-    for(self.childObjects) |child| {
+    for (self.childObjects) |child| {
         child.update(child);
     }
 }
 /// Spits out an owned string that represents your scene in your preferrec
 /// storage format.
 pub fn toBytes(self: *Self, allocator: *std.mem.Allocator) []const u8 {
-    if(self.isSpoof) {
+    if (self.isSpoof) {
         std.debug.panic("Improper method call on spoofed scene\n", .{});
     }
 
@@ -157,7 +159,7 @@ pub fn toBytes(self: *Self, allocator: *std.mem.Allocator) []const u8 {
     // Child objects
 
     var children = tree.newObject();
-    for(self.childObjects) |interface| {
+    for (self.childObjects) |interface| {
         children.data.Map.put(interface.information.name, interface.serialize(interface, tree)) catch unreachable;
     }
 
@@ -175,8 +177,8 @@ pub fn toBytes(self: *Self, allocator: *std.mem.Allocator) []const u8 {
 /// that this reference is invalidated if you modify the group by appending
 /// or deleting.
 pub fn has(self: *Self, comptime target: type) ?[]target {
-    for(self.childObjects) |child| {
-        if(std.mem.eql(u8, @typeName(target), child.information.name)) {
+    for (self.childObjects) |child| {
+        if (std.mem.eql(u8, @typeName(target), child.information.name)) {
             const wrapper = sling.Object.CollectionType(target);
             return @fieldParentPtr(wrapper, "interface", child).value;
         }
@@ -187,10 +189,10 @@ pub fn has(self: *Self, comptime target: type) ?[]target {
 /// a temporary reference to the value. It's fine to call this constantly
 /// if you need to refer to it frequently.
 pub fn is(self: *Self, comptime target: type) ?*target {
-    if(self.isSpoof) {
+    if (self.isSpoof) {
         return null;
     }
-    if(std.mem.eql(u8, @typeName(target), self.baseObject.information.name)) {
+    if (std.mem.eql(u8, @typeName(target), self.baseObject.information.name)) {
         const wrapper = sling.Object.SingletonType(target);
         return &@fieldParentPtr(wrapper, "interface", self.baseObject).value;
     }
@@ -199,12 +201,12 @@ pub fn is(self: *Self, comptime target: type) ?*target {
 /// The returned entity reference is only good until the next time an entity is appended.
 /// Keep this in mind and don't store this reference.
 pub fn spawn(self: *Self, comptime target: type) ?*target {
-    for(self.childObjects) |child| {
-        if(std.mem.eql(u8, @typeName(target), child.information.name)) {
+    for (self.childObjects) |child| {
+        if (std.mem.eql(u8, @typeName(target), child.information.name)) {
             const wrapper = sling.Object.CollectionType(target);
             child.data.Collection.append(child);
             var array = @fieldParentPtr(wrapper, "interface", child).value;
-            return &array[array.len-1];
+            return &array[array.len - 1];
         }
     }
     return null;

@@ -45,15 +45,15 @@ pub fn HoleQueue(comptime T: type) type {
             };
         }
 
-        pub fn deinit(self:*Self) void {
+        pub fn deinit(self: *Self) void {
             self.internalList.deinit();
             self.holeQueue.deinit();
         }
 
         /// Copies a stack value into local memory and returns its index(which is guaranteed
         /// to never change.)
-        pub fn take(self:*Self, stackVal: T) !usize {
-            if(self.holeQueue.readItem()) |id| {
+        pub fn take(self: *Self, stackVal: T) !usize {
+            if (self.holeQueue.readItem()) |id| {
                 self.internalList.items[id] = stackVal;
                 return id;
             } else {
@@ -63,15 +63,15 @@ pub fn HoleQueue(comptime T: type) type {
             }
         }
 
-        pub fn release(self:*Self, id: usize) !void {
+        pub fn release(self: *Self, id: usize) !void {
             try self.holeQueue.writeItem(id);
             self.internalList.items[id] = undefined;
         }
 
-        pub fn get(self:*Self, id:usize) *T {
+        pub fn get(self: *Self, id: usize) *T {
             return &self.internalList.items[id];
         }
-        pub fn getCopy(self:*Self, id:usize) T {
+        pub fn getCopy(self: *Self, id: usize) T {
             return self.internalList.items[id];
         }
     };
@@ -79,31 +79,31 @@ pub fn HoleQueue(comptime T: type) type {
 
 /// Takes a value, and a min/max range, and returns a ratio depending on where value
 /// lies between the 2. if clamp, it is 0-1
-pub fn remapValueToRange(value:f32, range_min: f32, range_max: f32, clamp: bool) f32 {
-    if(clamp) {
-        return std.math.clamp((value-range_min) / (range_max - range_min), 0.0, 1.0);
+pub fn remapValueToRange(value: f32, range_min: f32, range_max: f32, clamp: bool) f32 {
+    if (clamp) {
+        return std.math.clamp((value - range_min) / (range_max - range_min), 0.0, 1.0);
     } else {
-        return (value-range_min) / (range_max - range_min);
+        return (value - range_min) / (range_max - range_min);
     }
 }
 
 /// Creates an ig.ig editor field for any possible type you feed it that isnt(and doesnt contain)
 /// an opaque type.
-pub fn igEdit(label: []const u8, ptr:anytype) bool {
+pub fn igEdit(label: []const u8, ptr: anytype) bool {
     const ti: std.builtin.TypeInfo = @typeInfo(@TypeOf(ptr.*));
-    
-    if(ti == .Pointer) {
+
+    if (ti == .Pointer) {
         if (ti.Pointer.size == .Slice or ti.Pointer.size == .Many) {
             ig.igPushID_Str(label.ptr);
             var hit: bool = false;
-            var height = std.math.clamp(@intToFloat(f32,ptr.*.len+1) * 30.0, 0, 200);
-            ig.igPushStyleVar_Vec2(ig.ImGuiStyleVar_WindowPadding, .{.x=2.0,.y=2.0});
-            if(ig.igBeginChild_Str(label.ptr, .{.y=height}, true, ig.ImGuiWindowFlags_None)) {
+            var height = std.math.clamp(@intToFloat(f32, ptr.*.len + 1) * 30.0, 0, 200);
+            ig.igPushStyleVar_Vec2(ig.ImGuiStyleVar_WindowPadding, .{ .x = 2.0, .y = 2.0 });
+            if (ig.igBeginChild_Str(label.ptr, .{ .y = height }, true, ig.ImGuiWindowFlags_None)) {
                 zt.custom_components.ztTextDisabled("{s}", .{label});
                 ig.igSameLine(0, 4);
-                for(ptr.*) |*item, i| {
+                for (ptr.*) |*item, i| {
                     var fmt = zt.custom_components.fmtTextForImgui("SubArray#{any}", .{i});
-                    if(igEdit(fmt, item)) {
+                    if (igEdit(fmt, item)) {
                         hit = true;
                     }
                 }
@@ -115,14 +115,14 @@ pub fn igEdit(label: []const u8, ptr:anytype) bool {
         }
     }
 
-    if(ti == .Enum) {
+    if (ti == .Enum) {
         var returnValue: bool = false;
         var integer = @enumToInt(ptr.*);
-        
-        if(ig.igBeginCombo(label.ptr, @tagName(ptr.*).ptr, ig.ImGuiComboFlags_None)) {
-            inline for(ti.Enum.fields) |enumField, i| {
+
+        if (ig.igBeginCombo(label.ptr, @tagName(ptr.*).ptr, ig.ImGuiComboFlags_None)) {
+            inline for (ti.Enum.fields) |enumField, i| {
                 //label: [*c]const u8, selected: bool, flags: ImGuiSelectableFlags, size: ImVec2
-                if(ig.igSelectable_Bool(enumField.name.ptr, i == integer, ig.ImGuiSelectableFlags_None, .{})) {
+                if (ig.igSelectable_Bool(enumField.name.ptr, i == integer, ig.ImGuiSelectableFlags_None, .{})) {
                     ptr.* = @intToEnum(@TypeOf(ptr.*), i);
                     returnValue = true;
                 }
@@ -132,8 +132,8 @@ pub fn igEdit(label: []const u8, ptr:anytype) bool {
         return returnValue;
     }
 
-    if(ti == .Optional) {
-        if(ptr.* == null) {
+    if (ti == .Optional) {
+        if (ptr.* == null) {
             zt.custom_components.ztTextDisabled("{s} (null)", .{label});
             return false;
         } else {
@@ -206,28 +206,28 @@ pub fn igEdit(label: []const u8, ptr:anytype) bool {
         },
         *sling.Depth => {
             var changed: bool = false;
-            switch(ptr.*) {
+            switch (ptr.*) {
                 .Regular => {
-                    if(ig.igButton("To YSorted", .{})) {
+                    if (ig.igButton("To YSorted", .{})) {
                         ptr.* = sling.Depth.initY(0.0, ptr.*.Regular);
                         return true;
                     }
                     ig.igSameLine(0, 4.0);
-                    if(igEdit(label, &ptr.*.Regular)) {
+                    if (igEdit(label, &ptr.*.Regular)) {
                         changed = true;
                     }
                 },
                 .YSorted => {
                     var depthLabel = zt.custom_components.fmtTextForImgui("{s}: Depth", .{label});
                     var yLabel = zt.custom_components.fmtTextForImgui("{s}: Y", .{label});
-                    if(igEdit(depthLabel, &ptr.*.YSorted.depth) or igEdit(yLabel, &ptr.*.YSorted.y)) {
+                    if (igEdit(depthLabel, &ptr.*.YSorted.depth) or igEdit(yLabel, &ptr.*.YSorted.y)) {
                         changed = true;
                     }
-                    if(ig.igButton("To Regular", .{})) {
+                    if (ig.igButton("To Regular", .{})) {
                         ptr.* = sling.Depth.init(ptr.*.YSorted.depth);
                         return true;
                     }
-                }
+                },
             }
             return changed;
         },

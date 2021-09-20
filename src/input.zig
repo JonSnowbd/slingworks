@@ -32,7 +32,7 @@ pub const Key = enum(c_int) {
     rAlt = glfw.GLFW_KEY_RIGHT_ALT,
     lShift = glfw.GLFW_KEY_LEFT_SHIFT,
     rShift = glfw.GLFW_KEY_RIGHT_SHIFT,
-    
+
     // Special
     capslock = glfw.GLFW_KEY_CAPS_LOCK,
     tilde = glfw.GLFW_KEY_GRAVE_ACCENT,
@@ -124,77 +124,84 @@ pub const Key = enum(c_int) {
     n = glfw.GLFW_KEY_N,
     m = glfw.GLFW_KEY_M,
 
-    inline fn keyCheck(key:Key) bool {
-        if(key.isMouse()) {
-            if(config.imguiBlocksInput and io.*.WantCaptureMouse) {return false;}
-            return io.*.MouseDown[@intCast(usize,@enumToInt(key))];
+    inline fn keyCheck(key: Key) bool {
+        if (key.isMouse()) {
+            if (config.imguiBlocksInput and io.*.WantCaptureMouse) {
+                return false;
+            }
+            return io.*.MouseDown[@intCast(usize, @enumToInt(key))];
         } else {
-            if(config.imguiBlocksInput and io.*.WantCaptureKeyboard) {return false;}
-            return io.*.KeysDown[@intCast(usize,@enumToInt(key))];
+            if (config.imguiBlocksInput and io.*.WantCaptureKeyboard) {
+                return false;
+            }
+            return io.*.KeysDown[@intCast(usize, @enumToInt(key))];
         }
     }
-    inline fn keyDur(key:Key) f32 {
-        if(key.isMouse()) {
-            if(config.imguiBlocksInput and io.*.WantCaptureMouse) {return 0.0;}
-            return io.*.MouseDownDuration[@intCast(usize,@enumToInt(key))];
+    inline fn keyDur(key: Key) f32 {
+        if (key.isMouse()) {
+            if (config.imguiBlocksInput and io.*.WantCaptureMouse) {
+                return 0.0;
+            }
+            return io.*.MouseDownDuration[@intCast(usize, @enumToInt(key))];
         } else {
-            if(config.imguiBlocksInput and io.*.WantCaptureKeyboard) {return 0.0;}
-            return io.*.KeysDownDuration[@intCast(usize,@enumToInt(key))];
+            if (config.imguiBlocksInput and io.*.WantCaptureKeyboard) {
+                return 0.0;
+            }
+            return io.*.KeysDownDuration[@intCast(usize, @enumToInt(key))];
         }
     }
-    inline fn keyPrevDur(key:Key) f32 {
-        if(key.isMouse()) {
-            return io.*.MouseDownDurationPrev[@intCast(usize,@enumToInt(key))];
+    inline fn keyPrevDur(key: Key) f32 {
+        if (key.isMouse()) {
+            return io.*.MouseDownDurationPrev[@intCast(usize, @enumToInt(key))];
         } else {
-            return io.*.KeysDownDurationPrev[@intCast(usize,@enumToInt(key))];
+            return io.*.KeysDownDurationPrev[@intCast(usize, @enumToInt(key))];
         }
     }
 
     /// True only for the frame it is pressed down.
-    pub fn pressed(key:Key) bool {
+    pub fn pressed(key: Key) bool {
         return keyDur(key) == 0;
     }
     /// True only for the frame it is released.
-    pub fn released(key:Key) bool {
+    pub fn released(key: Key) bool {
         return keyPrevDur(key) >= 0 and !keyCheck(key);
     }
     /// True when down, including when pressed.
-    pub fn down(key:Key) bool {
+    pub fn down(key: Key) bool {
         return keyCheck(key);
     }
     /// True when up, including when released
-    pub fn up(key:Key) bool {
+    pub fn up(key: Key) bool {
         return !down(key);
     }
     /// Inspects the key, if its a mouse button returns true.
     /// Does not inspect the state of the button, just what the button is.
-    pub fn isMouse(key:Key) bool {
+    pub fn isMouse(key: Key) bool {
         return @enumToInt(key) >= 0 and @enumToInt(key) <= 2;
     }
     /// Inspects the key, if its a character key returns true.
     /// Does not inspect the state of the key, just what the key is.
-    pub fn isAlpha(key:Key) bool {
+    pub fn isAlpha(key: Key) bool {
         return @enumToInt(key) >= 65 and @enumToInt(key) <= 90;
     }
     /// Inspects the key, if its a character key returns true.
     /// Does not inspect the state of the key, just what the key is.
-    pub fn isNumeric(key:Key) bool {
+    pub fn isNumeric(key: Key) bool {
         return @enumToInt(key) >= 48 and @enumToInt(key) <= 57;
     }
 };
 
-
-var prevWorldMouse: sling.math.Vec2 = .{.x=-1,.y=-1};
+var prevWorldMouse: sling.math.Vec2 = .{ .x = -1, .y = -1 };
 pub fn pump() void {
     io = ig.igGetIO();
     mouse = io.*.MousePos;
     mouseDelta = io.*.MouseDelta;
     worldMouse = sling.render.camera.screenToWorld(mouse);
-    if(prevWorldMouse.x == -1.0 and prevWorldMouse.y == -1.0) {
+    if (prevWorldMouse.x == -1.0 and prevWorldMouse.y == -1.0) {
         prevWorldMouse = worldMouse;
     }
     worldMouseDelta = worldMouse.sub(prevWorldMouse);
-    if(config.imguiBlocksInput and io.*.WantCaptureMouse) {
+    if (config.imguiBlocksInput and io.*.WantCaptureMouse) {
         mwheel = 0;
     } else {
         mwheel = io.*.MouseWheel;
