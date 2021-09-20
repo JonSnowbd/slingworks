@@ -15,6 +15,17 @@ const SlingSettings = struct {
     debugView: bool = false,
 };
 
+pub const Theme = struct {
+    pub var primary = util.hexToColor(0xFDFFFCFF);
+    pub var background = util.hexToColor(0x011627FF);
+    pub var highlight = util.hexToColor(0x3C91E6FF);
+    pub var secondary = util.hexToColor(0xDA627DFF);
+    pub var debugInfo = util.hexToColor(0xA663CCFF);
+    pub var debugSuccess = util.hexToColor(0x09E85EFF);
+    pub var debugError = util.hexToColor(0xE84855FF);
+    pub var debugWarning = util.hexToColor(0xF26419FF);
+};
+
 // Public namespaces and forwards
 pub const zt = @import("zt");
 pub const input = @import("input.zig");
@@ -34,7 +45,11 @@ pub const Depth = Renderer.Depth;
 pub const Object = @import("object.zig");
 pub const Scene = @import("scene.zig");
 pub const Shader = zt.gl.Shader;
+/// The default vertex that slingworks uses to render everything.
 pub const Vertex = zt.game.Renderer.Vertex;
+/// A nine patch slice for rendering, store in it the sub rect of the patch,
+/// and the amount in pixels from each side, and you can use this to draw
+/// nine patch textures.
 pub const Patch = Renderer.Patch;
 
 pub const alloc = std.heap.c_allocator;

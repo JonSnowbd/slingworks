@@ -26,6 +26,16 @@ pub fn DeclEnum(comptime T: type) type {
     });
 }
 
+pub fn hexToColor(hex: u32) sling.math.Vec4 {
+    const cast: [4]u8 = @bitCast([4]u8, hex);
+    return sling.math.vec4(@intToFloat(f32, cast[0])/255.0, @intToFloat(f32, cast[1])/255.0, @intToFloat(f32, cast[2])/255.0, @intToFloat(f32, cast[3])/255.0);
+}
+pub fn hexToColorString(hexCode: []const u8) sling.math.Vec4 {
+    var slice: []const u8 = std.mem.trim(u8, hexCode, "#");
+    var hex = std.fmt.parseUnsigned(u32, slice, 16) catch unreachable;
+    return hexToColor(hex);
+}
+
 /// A data structure that lets you store a usize lookup id to retrieve a value
 /// without changing every other id reference when one is released by storing
 /// 'holes' to reuse in the structure.
