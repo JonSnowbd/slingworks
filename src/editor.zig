@@ -66,10 +66,20 @@ fn objectEditor(scene: *sling.Scene) void {
                     var ws: ig.ImVec2 = undefined;
                     ig.igGetItemRectSize(&s);
                     ig.igGetWindowSize(&ws);
-
                     ig.igSameLine(ws.x - 22, 0);
-                    if (ig.igButton("+", .{ .x = 20, .y = s.y })) {
+                    if (ig.igButton(sling.dictionary.addNew.ptr, .{ .x = 20, .y = s.y })) {
                         interface.data.Collection.append(interface);
+                    }
+                    if (scene.editorData.selectedObjectGroup == i) {
+                        ig.igSameLine(ws.x - 44, 0);
+                        if (ig.igButton(sling.dictionary.duplicate.ptr, .{ .x = 20, .y = s.y })) {
+                            interface.data.Collection.append(interface);
+                        }
+                        if (ig.igIsItemHovered(ig.ImGuiHoveredFlags_None)) {
+                            ig.igBeginTooltip();
+                            ig.igText("Duplicate the currently selected entity.");
+                            ig.igEndTooltip();
+                        }
                     }
                     if (open) {
                         var max = interface.data.Collection.getCount(interface);

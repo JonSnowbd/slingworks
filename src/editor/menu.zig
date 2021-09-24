@@ -2,26 +2,47 @@ const std = @import("std");
 const zt = @import("zt");
 const sling = @import("../sling.zig");
 const ig = @import("imgui");
+const selector = @import("fileSelector.zig");
 
 var demoOpen: bool = false;
-
-var filePath: [512:0]u8 = std.mem.zeroes([512:0]u8);
-var pathCallback: ?fn ([]const u8) void = null;
+var saveShortcut: bool = false;
+var loadShortcut: bool = false;
+var saveAsShortcut: bool = false;
 
 pub fn update() void {
+    // Shortcut items
+    var before = sling.input.config.imguiBlocksInput;
+    sling.input.config.imguiBlocksInput = false;
+    if (sling.input.Key.lCtrl.down() or sling.input.Key.rCtrl.down()) {
+        if (sling.input.Key.lShift.down() or sling.input.Key.rShift.down()) {
+            if (sling.input.Key.s.pressed()) {
+                saveAsShortcut = true;
+            }
+        } else {
+            if (sling.input.Key.s.pressed()) {
+                saveShortcut = true;
+            }
+        }
+        if (sling.input.Key.o.pressed()) {
+            loadShortcut = true;
+        }
+    }
+    sling.input.config.imguiBlocksInput = before;
+
+    // Main menu
     if (ig.igBeginMainMenuBar()) {
         if (sling.room) |_| {
-            if (ig.igBeginMenu("<- Back", true)) {
+            if (ig.igBeginMenu(sling.dictionary.exitRoom.ptr, true)) {
                 sling.leaveRoom();
                 ig.igEndMenu();
             }
         }
         // Creation tab
-        if (ig.igBeginMenu("File", sling.room == null)) {
+        if (ig.igBeginMenu(sling.dictionary.fileMenuTag.ptr, sling.room == null)) {
             fileMenu();
             ig.igEndMenu();
         }
-        if (ig.igBeginMenu("Room", sling.room == null)) {
+        if (ig.igBeginMenu(sling.dictionary.roomMenuTag.ptr, sling.room == null)) {
             for (sling.register.RegisteredRooms.items) |room, i| {
                 if (ig.igMenuItem_Bool(room.name.ptr, null, false, true)) {
                     sling.enterRoom(i);
@@ -29,8 +50,8 @@ pub fn update() void {
             }
             ig.igEndMenu();
         }
-        if (ig.igBeginMenu("Misc", true)) {
-            if (ig.igMenuItem_Bool("ImGui Demo", null, demoOpen, true)) {
+        if (ig.igBeginMenu(sling.dictionary.miscMenuTag.ptr, true)) {
+            if (ig.igMenuItem_Bool(sling.dictionary.miscMenuImGui.ptr, null, demoOpen, true)) {
                 demoOpen = !demoOpen;
             }
             ig.igEndMenu();
@@ -40,27 +61,12 @@ pub fn update() void {
     if (demoOpen) {
         ig.igShowDemoWindow(&demoOpen);
     }
-    if (pathCallback) |callback| {
-        var io = ig.igGetIO();
-        ig.igSetNextWindowSize(.{ .x = 300, .y = 100 }, ig.ImGuiCond_Appearing);
-        ig.igSetNextWindowPos(io.*.DisplaySize.scale(0.5), ig.ImGuiCond_Appearing, .{ .x = 0.5, .y = 0.5 });
-        if (ig.igBegin("Enter Path##SLING_PATH_UTILITY", null, ig.ImGuiWindowFlags_None)) {
-            ig.igText("Path");
-            _ = sling.util.igEdit("##SLING_PATH_ENTRY", &filePath);
-            ig.igSameLine(0, 4);
-            if (ig.igButton("Done", .{})) {
-                var path = std.mem.spanZ(&filePath);
-                callback(path);
-                pathCallback = null;
-            }
-        }
-        ig.igEnd();
-    }
+    selector.update();
 }
 
 fn fileMenu() void {
     // New menu dropdown
-    if (ig.igBeginMenu("New", true)) {
+    if (ig.igBeginMenu(sling.dictionary.fileMenuNew.ptr, true)) {
         var registers = sling.register.RegisteredScenes.valueIterator();
         while (registers.next()) |sceneRegister| {
             var cast: *sling.register.SceneRegister = sceneRegister;
@@ -72,10 +78,9 @@ fn fileMenu() void {
         ig.igEndMenu();
     }
     ig.igSeparator();
-
     // Current scene items
     var enabled = sling.scene != null and sling.scene.?.editorData.filePath != null;
-    if (ig.igMenuItem_Bool("Save", "CTRL+S", false, enabled)) {
+    if (saveShortcut or ig.igMenuItem_Bool(sling.dictionary.fileMenuSave.ptr, "CTRL+S", false, enabled)) {
         var path = sling.scene.?.editorData.filePath.?;
         var data = sling.scene.?.toBytes(sling.alloc);
         defer sling.alloc.free(data);
@@ -83,31 +88,10 @@ fn fileMenu() void {
             std.debug.print("Failed to write scene data to disk.\n", .{});
         };
     }
-    if (ig.igMenuItem_Bool("Save As", "CTRL+SHIFT+S", false, true)) {
-        pathCallback = cb_save;
+    if (saveAsShortcut or ig.igMenuItem_Bool(sling.dictionary.fileMenuSaveAs.ptr, "CTRL+SHIFT+S", false, true)) {
+        selector.beginSaving(sling.scene.?.editorData.filePath);
     }
-    if (ig.igMenuItem_Bool("Load", "CTRL+O", false, true)) {
-        pathCallback = cb_load;
+    if (loadShortcut or ig.igMenuItem_Bool(sling.dictionary.fileMenuLoad.ptr, "CTRL+O", false, true)) {
+        selector.beginLoading();
     }
-    // Shortcut stuff
-}
-
-fn cb_save(path: []const u8) void {
-    var data = sling.scene.?.toBytes(sling.alloc);
-    var ownedPath = sling.alloc.dupeZ(u8, path) catch unreachable;
-    sling.scene.?.editorData.filePath = ownedPath;
-    defer sling.alloc.free(data);
-    std.fs.cwd().writeFile(path, data) catch {
-        std.debug.print("Failed to write scene data to disk.\n", .{});
-    };
-    filePath = std.mem.zeroes([512:0]u8);
-}
-
-fn cb_load(path: []const u8) void {
-    var newScene = sling.Scene.initFromFilepath(path);
-    if (sling.scene) |oldScene| {
-        oldScene.deinit();
-    }
-    sling.scene = newScene;
-    filePath = std.mem.zeroes([512:0]u8);
 }

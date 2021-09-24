@@ -15,6 +15,8 @@ const SlingSettings = struct {
     debugView: bool = false,
 };
 
+const imFontRanges = [_]c_ushort{ 0xF004, 0xF4AD };
+
 pub const Theme = struct {
     pub var primary = util.hexToColor(0xFDFFFCFF);
     pub var background = util.hexToColor(0x011627FF);
@@ -38,12 +40,18 @@ pub const fmod = @import("fmod.zig");
 pub const audio = @import("audio.zig");
 pub const physics = @import("physics.zig");
 pub const handles = @import("handle.zig");
+pub const debug = @import("debug.zig");
+/// If you are editing the dictionary AND setting a user font for the editor,
+/// set the font THEN edit the dictionary.
+pub const dictionary = @import("dictionary.zig");
+pub const icon = @import("icon.zig");
 
 // Public types and forwards
 pub const Camera = @import("camera.zig");
 pub const Depth = Renderer.Depth;
 pub const Object = @import("object.zig");
 pub const Scene = @import("scene.zig");
+/// A shader, this is used in slingworks to change how things are drawn.
 pub const Shader = zt.gl.Shader;
 /// The default vertex that slingworks uses to render everything.
 pub const Vertex = zt.game.Renderer.Vertex;
@@ -61,10 +69,15 @@ pub var settings: SlingSettings = .{};
 pub var inEditor: bool = false;
 
 pub var render: Renderer = undefined;
+
+/// You can set this directly, null is no scene. Make sure you clean up the current scene if one exists.
 pub var scene: ?*Scene = null;
+/// You shouldn't set this directly, as rooms have setup/teardown that is managed by sling. Prefer to use
+/// enterRoomString("room") and leaveRoom()
 pub var room: ?usize = null;
 
 pub var preferredSerializationConfig: serializer.Configuration = serializer.Configuration.init(alloc);
+/// You can set this yourself if desired, this changes the serialization format of everything sling uses.
 pub var preferredLexicon: serializer.Lexicon = serializer.json.JsonLexicon;
 
 var ctx: *zt.App(void).Context = undefined;
@@ -120,7 +133,7 @@ fn initialize() void {
     var io = ig.igGetIO();
     io.*.ConfigFlags |= ig.ImGuiConfigFlags_DockingEnable;
 
-    register.room(PlayRoom.roomMethod, "Test Scene", PlayRoom.init, PlayRoom.deinit);
+    register.room(PlayRoom.roomMethod, dictionary.roomMenuPlay, PlayRoom.init, PlayRoom.deinit);
 
     render = Renderer.init();
     for (staticInits.items) |ifn| {
@@ -132,25 +145,11 @@ fn initialize() void {
         defer alloc.free(bytes);
         scene = Scene.initFromBytes(bytes);
     }
-
-    // Add fontawesome
-    // var copied: []u8 = alloc.dupeZ(u8, @embedFile("deps/fontawesome.otf")) catch unreachable;
-    // defer alloc.free(copied);
-
-    // var cfg = ig.ImFontConfig_ImFontConfig();
-    // cfg.*.SizePixels = size;
-    // cfg.*.OversampleH = 1;
-    // cfg.*.OversampleV = 1;
-    // cfg.*.MergeMode = true;
-    // cfg.*.
-    // var range = ig.ImFontAtlas_GetGlyphRangesDefault(io.*.Fonts);
-    // var font = ig.ImFontAtlas_AddFontFromMemoryTTF(io.*.Fonts, copied.ptr, @intCast(c_int,bytes.len), size, cfg, range);
-    // ctx.rebuildFont();
 }
 fn loop() void {
     while (ctx.open) {
-        time += ctx.time.dt;
         dt = ctx.time.dt;
+        time += ctx.time.dt;
 
         ctx.beginFrame();
         input.pump();
@@ -254,31 +253,34 @@ pub fn setBackgroundColor(color: math.Vec4) void {
     const gl = @import("gl");
     gl.glClearColor(color.x, color.y, color.z, color.w);
 }
-pub fn igFontPath(path: []const u8, size: f32) *ig.ImFont {
-    return ctx.addFont(path, size);
-}
-pub fn igFontBytes(bytes: []const u8, size: f32) *ig.ImFont {
-    var copied: []u8 = alloc.dupeZ(u8, bytes) catch unreachable;
-    defer alloc.free(copied);
+
+/// Simply @embedFile your ttf and pass into first param.
+/// This should be done once at init. If you are editing the dictionary,
+/// do so after this, as this will overwrite iconify the default labels.
+pub fn setEditorFontBytes(bytes: []const u8, size: f32) void {
     var io = ig.igGetIO();
     var cfg = ig.ImFontConfig_ImFontConfig();
-    cfg.*.SizePixels = size;
-    cfg.*.OversampleH = 2;
+    cfg.*.OversampleH = 3;
     cfg.*.OversampleV = 2;
-    var range = ig.ImFontAtlas_GetGlyphRangesDefault(io.*.Fonts);
-    var font = ig.ImFontAtlas_AddFontFromMemoryTTF(io.*.Fonts, copied.ptr, @intCast(c_int, bytes.len), size, cfg, range);
+
+    // User font
+    var defaultRange = ig.ImFontAtlas_GetGlyphRangesDefault(io.*.Fonts);
+    var copied: []u8 = alloc.dupeZ(u8, bytes) catch unreachable;
+    defer alloc.free(copied);
+    var userFnt = ig.ImFontAtlas_AddFontFromMemoryTTF(io.*.Fonts, copied.ptr, @intCast(c_int, copied.len), size, cfg, defaultRange);
+
+    // Icon font
+    var iconCopied: []u8 = alloc.dupeZ(u8, @embedFile("deps/fontawesome.otf")) catch unreachable;
+    defer alloc.free(iconCopied);
+    cfg.*.MergeMode = true;
+    _ = ig.ImFontAtlas_AddFontFromMemoryTTF(io.*.Fonts, iconCopied.ptr, @intCast(c_int, iconCopied.len), size - 2, cfg, &imFontRanges);
+
+    // Finish
+    _ = ig.ImFontAtlas_Build(io.*.Fonts);
+    io.*.FontDefault = userFnt;
     ctx.rebuildFont();
 
-    return font;
-}
-pub fn igSetFontFilter(nearest: bool) void {
-    var io = ig.igGetIO();
-    var fontTex = zt.gl.Texture.from(@intCast(c_uint, @ptrToInt(io.*.Fonts.*.TexID)), true);
-    if (nearest) {
-        fontTex.setNearestFilter();
-    } else {
-        fontTex.setLinearFilter();
-    }
+    dictionary.iconify();
 }
 
 pub fn enterRoom(index: usize) void {
@@ -290,6 +292,14 @@ pub fn enterRoom(index: usize) void {
         ifn();
     }
     room = index;
+}
+pub fn enterRoomString(id: []const u8) void {
+    for (register.RegisteredRooms.items) |r, i| {
+        if (std.mem.eql(u8, id, r.name)) {
+            enterRoom(i);
+            return;
+        }
+    }
 }
 pub fn leaveRoom() void {
     if (register.RegisteredRooms.items[room.?].deinitMethod) |dfn| {
