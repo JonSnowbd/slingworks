@@ -1,17 +1,17 @@
 <p align="center">
   <img width="267" height="267" src="logo.png">
 </p>
-<h1 align="center">Slingworks<sup>preview</sup></h1>
+<h1 align="center">Slingworks <sup>0.1</sup></h1>
 
-A simple and powerful Windows+Linux 'bring your own content' engine 
+A simple and powerful Windows+Linux 'bring your content' engine 
 built in Zig and powered by GLFW/OpenGL/ImGui. Slingworks makes no
 assumptions about your games content and instead offers a framework
 to organize your code into simple and fast scenes and entity collections,
 all with an embedded runtime editor!
 
 Slingworks is aimed at any scope due to its simplicity
-by self containing logic, and freely allows your audience
-access to the very same tools you use to make the games content for free!
+in keeping logic contained inside their own files, while allowing your audience
+access to the very same tools you used to make the games content for free!
 
 ## Whats missing?
 
@@ -19,7 +19,6 @@ Right now there are several pieces of Slingwork missing or lacking polish:
 
 - Services
 - Spritefonts
-- Resources(unsure if going ahead with these)
 - Linux support
 
 ## Platform support
@@ -61,6 +60,10 @@ a type inside of main, but it instead recommended to use [integate](#)
 5. Compile and run your code, providing `editor` as an argument to boot
 the game up in editor like `zig build run -- editor` or `zig-out/bin/yourgame.exe editor`
 
+Keep in mind:
+1. Either provide the initial scene as a path in the distributed settings file, or in code on init check for
+`sling.inEditor`, and if not, load the initial scene by code.
+
 ## But..
 
 #### Wheres the example?
@@ -78,4 +81,4 @@ for live audio authoring.
 
 The serializer should handle every reasonable type including basic
 array lists and string hashmaps, but it is unavoidable to crash if you
-attempted to serialize untagged unions or opaque types in your entities.
+attempted to serialize untagged unions, opaque, or packed types in your entities.
