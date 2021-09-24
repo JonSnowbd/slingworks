@@ -83,3 +83,9 @@ fn load(comptime T: type, path: []const u8) T {
         },
     }
 }
+
+pub fn save(comptime T: type, item: T, path: []const u8) !void {
+    std.debug.assert(T != Texture);
+    _ = item;
+    _ = path;
+}

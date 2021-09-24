@@ -29,7 +29,7 @@ pub const Font = struct {
     };
 
     information: Information,
-    page: []const Page,
+    page: []Page,
     fontTexId: usize,
 };
 

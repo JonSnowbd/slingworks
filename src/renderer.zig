@@ -384,6 +384,7 @@ pub fn patch(self: *Self, space: Space, depth: Depth, patchInfo: Patch, textureI
     }
 }
 
+/// If thickness is null, this is a filled rectangle, otherwise thickness denotes the size of the outlines.
 pub fn rectangle(self: *Self, space: Space, depth: Depth, rect: sling.math.Rect, color: sling.math.Vec4, thickness: ?f32) void {
     var targetBuffer = if (space == .world) &self.worldRequests else &self.screenRequests;
     targetBuffer.append(.{ .depth = depth, .shader = self.currentShader, .data = .{ .Rectangle = .{
