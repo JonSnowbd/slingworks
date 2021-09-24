@@ -17,7 +17,7 @@ isSpoof: bool = false,
 
 /// If you've registered a type as a scene, then you can pass it in here to construct
 /// an empty scene.
-pub fn init(comptime baseType: type) Self {
+pub fn init(comptime baseType: type) *Self {
     var fetch = sling.register.RegisteredScenes.get(@typeName(baseType));
     if (fetch == null) {
         std.debug.panic("Initializing a scene that isnt configured", .{});
