@@ -14,6 +14,7 @@ pub fn init() void {
         defer sling.alloc.free(bytes);
         scene = sling.Scene.initFromBytes(bytes);
     } else {
+        sling.logErr("You need to be editing a scene to play.");
         foundScene = false;
         exiting = true;
     }
@@ -21,6 +22,7 @@ pub fn init() void {
 }
 pub fn deinit() void {
     if (foundScene) {
+        sling.log("The following deinit was a play test:");
         scene.deinit();
     }
 }

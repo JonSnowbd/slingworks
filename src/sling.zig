@@ -12,6 +12,7 @@ const SlingSettings = struct {
     wasMaximizedLast: bool = false,
     windowPos: math.Vec2 = .{ .x = 200, .y = 200 },
     windowSize: math.Vec2 = .{ .x = 1280, .y = 720 },
+    hideConsoleInRooms: bool = false,
     debugView: bool = false,
 };
 
@@ -62,8 +63,10 @@ pub const Patch = Renderer.Patch;
 
 pub const alloc = std.heap.c_allocator;
 
+pub var timeScale: f32 = 1.0;
 pub var time: f32 = 0.0;
 pub var dt: f32 = 0.0;
+pub var unscaledDt: f32 = 0.0;
 
 pub var settings: SlingSettings = .{};
 pub var inEditor: bool = false;
@@ -132,13 +135,12 @@ fn initialize() void {
 
     var io = ig.igGetIO();
     io.*.ConfigFlags |= ig.ImGuiConfigFlags_DockingEnable;
-
-    register.room(PlayRoom.roomMethod, dictionary.roomMenuPlay, PlayRoom.init, PlayRoom.deinit);
-
     render = Renderer.init();
     for (staticInits.items) |ifn| {
         ifn();
     }
+
+    register.room(PlayRoom.roomMethod, dictionary.roomMenuPlay, PlayRoom.init, PlayRoom.deinit);
 
     if (!inEditor and settings.initialScene != null) {
         var bytes = std.fs.cwd().readFileAlloc(alloc, settings.initialScene.?, 80_000_000) catch unreachable;
@@ -148,7 +150,8 @@ fn initialize() void {
 }
 fn loop() void {
     while (ctx.open) {
-        dt = ctx.time.dt;
+        dt = ctx.time.dt * timeScale;
+        unscaledDt = ctx.time.dt;
         time += ctx.time.dt;
 
         ctx.beginFrame();
@@ -306,4 +309,24 @@ pub fn leaveRoom() void {
         dfn();
     }
     room = null;
+}
+
+const console = @import("editor/console.zig");
+pub fn log(message: []const u8) void {
+    console.submit(message, null, icon.bell);
+}
+pub fn logFmt(comptime fmt: []const u8, params: anytype) void {
+    console.submitFmt(fmt, params, null, icon.bell);
+}
+pub fn logErr(message: []const u8) void {
+    console.submit(message, debug.DebugType.err, icon.circledCross);
+}
+pub fn logErrFmt(comptime fmt: []const u8, params: anytype) void {
+    console.submitFmt(fmt, params, debug.DebugType.err, icon.circledCross);
+}
+pub fn logWarn(message: []const u8) void {
+    console.submit(message, debug.DebugType.warning, icon.circledQuestionmark);
+}
+pub fn logWarnFmt(comptime fmt: []const u8, params: anytype) void {
+    console.submitFmt(fmt, params, debug.DebugType.warning, icon.circledQuestionmark);
 }

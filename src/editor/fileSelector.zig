@@ -146,15 +146,18 @@ fn cb_save(path: []const u8) void {
     std.fs.cwd().writeFile(path, data) catch {
         std.debug.print("Failed to write scene data to disk.\n", .{});
     };
+    sling.logFmt("Succesfully saved scene to path {s}!", .{path});
 }
 
 fn cb_load(path: []const u8) void {
     var newScene = sling.Scene.initFromFilepath(path);
     // TODO: implement a previous scene stack instead of discarding.
     if (sling.scene) |oldScene| {
+        sling.logWarn("Discarding current scene contents...");
         oldScene.deinit();
     }
     sling.scene = newScene;
+    sling.logFmt("Succesfully saved scene to path {s}!", .{path});
 }
 
 fn finish() void {

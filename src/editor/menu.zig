@@ -11,6 +11,9 @@ var saveAsShortcut: bool = false;
 
 pub fn update() void {
     // Shortcut items
+    saveAsShortcut = false;
+    saveShortcut = false;
+    loadShortcut = false;
     var before = sling.input.config.imguiBlocksInput;
     sling.input.config.imguiBlocksInput = false;
     if (sling.input.Key.lCtrl.down() or sling.input.Key.rCtrl.down()) {
@@ -80,18 +83,26 @@ fn fileMenu() void {
     ig.igSeparator();
     // Current scene items
     var enabled = sling.scene != null and sling.scene.?.editorData.filePath != null;
-    if (saveShortcut or ig.igMenuItem_Bool(sling.dictionary.fileMenuSave.ptr, "CTRL+S", false, enabled)) {
+    if (ig.igMenuItem_Bool(sling.dictionary.fileMenuSave.ptr, "CTRL+S", false, enabled) or saveShortcut) {
         var path = sling.scene.?.editorData.filePath.?;
         var data = sling.scene.?.toBytes(sling.alloc);
         defer sling.alloc.free(data);
         std.fs.cwd().writeFile(path, data) catch {
             std.debug.print("Failed to write scene data to disk.\n", .{});
         };
+        sling.logFmt("Quick saving to {s} successful!", .{sling.scene.?.editorData.filePath.?});
     }
-    if (saveAsShortcut or ig.igMenuItem_Bool(sling.dictionary.fileMenuSaveAs.ptr, "CTRL+SHIFT+S", false, true)) {
+    if (ig.igMenuItem_Bool(sling.dictionary.fileMenuSaveAs.ptr, "CTRL+SHIFT+S", false, true) or saveAsShortcut) {
         selector.beginSaving(sling.scene.?.editorData.filePath);
     }
-    if (loadShortcut or ig.igMenuItem_Bool(sling.dictionary.fileMenuLoad.ptr, "CTRL+O", false, true)) {
+    if (ig.igMenuItem_Bool(sling.dictionary.fileMenuLoad.ptr, "CTRL+O", false, true) or loadShortcut) {
         selector.beginLoading();
+    }
+    ig.igSeparator();
+    if (ig.igMenuItem_Bool(sling.dictionary.fileMenuLeave.ptr, null, false, sling.scene != null and sling.inEditor)) {
+        if(sling.scene) |scn| {
+            scn.deinit();
+            sling.scene = null;
+        }
     }
 }

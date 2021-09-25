@@ -30,6 +30,7 @@ pub fn init(comptime baseType: type) *Self {
 /// Children is expected to be a tuple of types that this contains, for example
 /// `.{Player,WeaponPickup,Enemy}`
 pub fn initSpoof(comptime children: anytype) *Self {
+    sling.logWarn("Creating a spoofed scene");
     var self: *Self = sling.alloc.create(Self) catch unreachable;
     self.* = .{};
     const childrenType = @typeInfo(@TypeOf(children));
@@ -50,6 +51,7 @@ pub fn initSpoof(comptime children: anytype) *Self {
     return self;
 }
 pub fn deinit(self: *Self) void {
+    sling.logWarn("Deiniting a scene.");
     self.editorData.objectToIndex.deinit();
     self.baseObject.deinitAll(self.baseObject);
     self.baseObject.arena.deinit();
@@ -74,6 +76,7 @@ pub fn initFromInfo(sceneRegister: sling.register.SceneRegister) *Self {
         self.editorData.objectToIndex.put(info.name, i) catch unreachable;
         obj.* = info.create(self);
     }
+    sling.log("Created a scene from scene register information.");
     return self;
 }
 /// Takes bytes and creates a scene, it correctly picks the scene type for you provided
@@ -121,6 +124,7 @@ pub fn initFromBytes(data: []const u8) *Self {
         std.debug.panic("Failed to find a children definition in the provided bytes:\n{s}", .{data});
     }
 
+    sling.log("Created a scene from raw bytes.");
     return self;
 }
 /// Takes a filepath and creates a scene, it correctly picks the scene type for you provided
@@ -129,6 +133,7 @@ pub fn initFromFilepath(path: []const u8) *Self {
     var bytes = std.fs.cwd().readFileAlloc(sling.alloc, path, 80_000_000) catch unreachable;
     defer sling.alloc.free(bytes);
 
+    sling.logFmt("Creating a scene from filepath {s}", .{path});
     var self = initFromBytes(bytes);
 
     var ownedPath = sling.alloc.dupeZ(u8, path) catch unreachable;

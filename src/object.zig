@@ -83,6 +83,8 @@ pub const Interface = struct {
         getCount: fn (*Interface) usize,
         /// The objects inside can be represented by non-generic text, this gets those names.
         getName: fn (*Interface, usize) []const u8,
+        /// Copies all the data from the first index into the second.
+        copyFromTo: fn (*Interface, usize,usize) void,
     };
     pub const Singleton = struct {
         editor: fn (*Interface) void,
@@ -324,6 +326,7 @@ pub fn CollectionType(comptime T: type) type {
                 .append = Self.interface_append,
                 .getCount = Self.interface_getCount,
                 .getName = Self.interface_getName,
+                .copyFromTo = Self.interface_copyFromTo,
             } } };
             instance.parent = scene;
             instance.value = instance.interface.arena.allocator.alloc(T, 0) catch |err| {
@@ -342,6 +345,7 @@ pub fn CollectionType(comptime T: type) type {
                 .append = Self.interface_append,
                 .getCount = Self.interface_getCount,
                 .getName = Self.interface_getName,
+                .copyFromTo = Self.interface_copyFromTo,
             } } };
             instance.parent = scene;
             node.into(&instance.value, &instance.interface.arena.allocator);
@@ -422,6 +426,10 @@ pub fn CollectionType(comptime T: type) type {
             } else {
                 return zt.custom_components.fmtTextForImgui("{s}#{any}", .{ GenBuildData(T).information.name, index });
             }
+        }
+        fn interface_copyFromTo(object: *Interface, index: usize, destination: usize) void {
+            var self: *Self = getSelf(object);
+            self.value[destination] = self.value[index];
         }
     };
 }

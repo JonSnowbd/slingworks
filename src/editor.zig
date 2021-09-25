@@ -4,6 +4,7 @@ const sling = @import("sling.zig");
 const ig = @import("imgui");
 
 const menu = @import("editor/menu.zig");
+const console = @import("editor/console.zig");
 
 var demoOpen: bool = false;
 
@@ -14,6 +15,13 @@ pub fn editorUI() void {
         if (sling.room == null) {
             objectEditor(scene);
         }
+    }
+    if(sling.settings.hideConsoleInRooms) {
+        if(sling.room == null) {
+            console.update();
+        }
+    }else {
+        console.update();
     }
 }
 
@@ -30,7 +38,7 @@ fn controls() void {
 }
 
 fn objectEditor(scene: *sling.Scene) void {
-    if (ig.igBegin("Scene Editor##SLING_SCENE_EDITOR", null, ig.ImGuiWindowFlags_None)) {
+    if (ig.igBegin(sling.dictionary.windowTitleSceneEditor.ptr, null, ig.ImGuiWindowFlags_None)) {
         switch (scene.baseObject.data) {
             .Singleton => {
                 scene.baseObject.data.Singleton.editor(scene.baseObject);
@@ -47,7 +55,7 @@ fn objectEditor(scene: *sling.Scene) void {
     ig.igEnd();
 
     ig.igPushStyleVar_Vec2(ig.ImGuiStyleVar_WindowPadding, .{ .x = 2, .y = 2 });
-    if (ig.igBegin("Object Selector##SLING_OBJECT_SELECTOR", null, ig.ImGuiWindowFlags_None)) {
+    if (ig.igBegin(sling.dictionary.windowTitlePalette.ptr, null, ig.ImGuiWindowFlags_None)) {
         ig.igPushStyleVar_Vec2(ig.ImGuiStyleVar_FramePadding, .{});
         for (scene.childObjects) |interface, i| {
             ig.igPushID_Int(@intCast(c_int, i));
@@ -74,6 +82,7 @@ fn objectEditor(scene: *sling.Scene) void {
                         ig.igSameLine(ws.x - 44, 0);
                         if (ig.igButton(sling.dictionary.duplicate.ptr, .{ .x = 20, .y = s.y })) {
                             interface.data.Collection.append(interface);
+                            interface.data.Collection.copyFromTo(interface, scene.editorData.selectedEntity, interface.data.Collection.getCount(interface)-1);
                         }
                         if (ig.igIsItemHovered(ig.ImGuiHoveredFlags_None)) {
                             ig.igBeginTooltip();
@@ -102,7 +111,7 @@ fn objectEditor(scene: *sling.Scene) void {
     }
     ig.igEnd();
     ig.igPopStyleVar(1);
-    if (ig.igBegin("Object Editor##SLING_OBJECT_EDITOR", null, ig.ImGuiWindowFlags_None)) {
+    if (ig.igBegin(sling.dictionary.windowTitleObjectEditor.ptr, null, ig.ImGuiWindowFlags_None)) {
         if (scene.editorData.selectedObjectGroup < scene.childObjects.len) {
             var currentInterface = scene.childObjects[scene.editorData.selectedObjectGroup];
             switch (currentInterface.data) {
