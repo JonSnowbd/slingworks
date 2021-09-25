@@ -96,7 +96,20 @@ fn objectEditor(scene: *sling.Scene) void {
                         while (j < max) : (j += 1) {
                             ig.igPushID_Int(@intCast(c_int, j));
                             var txt = interface.data.Collection.getName(interface, j);
-                            if (ig.igSelectable_Bool(txt.ptr, i == scene.editorData.selectedObjectGroup and j == scene.editorData.selectedEntity, ig.ImGuiSelectableFlags_SpanAvailWidth, .{})) {
+
+                            var openNode = ig.igSelectable_Bool(txt.ptr, i == scene.editorData.selectedObjectGroup and j == scene.editorData.selectedEntity, ig.ImGuiSelectableFlags_SpanAvailWidth, .{});
+                            if(ig.igBeginPopupContextItem("ENTITY_POPUP_CONTEXT", ig.ImGuiPopupFlags_MouseButtonRight)) {
+                                if(ig.igSelectable_Bool("Delete", false, ig.ImGuiSelectableFlags_None, .{.x=110})) {
+                                    interface.data.Collection.remove(interface, j);
+                                    max -= 1;
+                                }
+                                if(ig.igSelectable_Bool("Duplicate", false, ig.ImGuiSelectableFlags_None, .{.x=110})) {
+                                    interface.data.Collection.append(interface);
+                                    interface.data.Collection.copyFromTo(interface, j, interface.data.Collection.getCount(interface)-1);
+                                }
+                                ig.igEndPopup();
+                            }
+                            if (openNode) {
                                 scene.editorData.selectedObjectGroup = i;
                                 scene.editorData.selectedEntity = j;
                             }
