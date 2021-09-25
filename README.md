@@ -19,6 +19,7 @@ Right now there are several pieces of Slingwork missing or lacking polish:
 
 - Services
 - Spritefonts
+- Gamepad support
 - Linux support
 
 ## Platform support
