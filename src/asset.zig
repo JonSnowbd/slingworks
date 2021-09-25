@@ -53,7 +53,7 @@ pub fn ensure(comptime T: type, path: []const u8) usize {
         std.debug.panic("Unknown error when fetching from asset lookup hashmap:\n{s}", .{@errorName(err)});
     };
     if (!resource.found_existing) {
-        resource.key_ptr.* = path;
+        resource.key_ptr.* = sling.alloc.dupeZ(u8, path) catch unreachable;
         resource.value_ptr.* = wrapper.data.items.len;
         wrapper.data.append(load(T, path)) catch |err| {
             std.debug.panic("Unknown error when appending to asset list:\n{s}", .{@errorName(err)});
