@@ -394,6 +394,50 @@ pub fn rectangle(self: *Self, space: Space, depth: Depth, rect: sling.math.Rect,
     } } }) catch unreachable;
 }
 
+pub fn text(self: *Self, space: Space, depth: Depth, fontId: usize, point: sling.math.Vec2, message: []const u8, color: sling.math.Vec4, originNormalized: ?sling.math.Vec2) void {
+    var font = sling.asset.get(sling.asset.Font, fontId);
+    var stamp: sling.math.Vec2 = point;
+    var dests: []sling.math.Rect = sling.alloc.alloc(sling.math.Rect, message.len) catch unreachable;
+    defer sling.alloc.free(dests);
+    var fullRect: sling.math.Rect = .{
+        .position=point,
+        .size=.{.y=font.information.lineHeight}
+    };
+    for(message) |char, i| {
+        if(char == '\n') {
+            fullRect.size.y += font.information.lineHeight;
+            stamp.x = point.x;
+            stamp.y += font.information.lineHeight;
+            continue;
+        }
+        if(font.characters.get(char)) |character| {
+            dests[i] = sling.math.Rect{
+                .size = character.atlasSourceRect.size,
+                .position = .{
+                    .x = stamp.x+character.offset.x,
+                    .y = stamp.y+character.offset.y,
+                }
+            };
+            stamp.x += character.advance;
+
+            fullRect.size.x = std.math.max(fullRect.size.x, stamp.x-point.x);
+        }
+    }
+    var offset = if(originNormalized == null) sling.math.Vec2{} else fullRect.size.mul(originNormalized.?);
+    for(message) |char, i| {
+        if(char == '\n') {
+            continue;
+        }
+        if(font.characters.get(char)) |character| {
+            const sourceRect = character.atlasSourceRect;
+            const id = font.pages.items[character.atlas];
+            const pos = dests[i].position.sub(offset);
+            const siz = dests[i].size;
+            self.texture(space, depth, id, pos, siz, color, sourceRect, null);
+        }
+    }
+}
+
 pub fn line(self: *Self, space: Space, depth: Depth, from: sling.math.Vec2, to: sling.math.Vec2, thickness: f32, color: sling.math.Vec4) void {
     var targetBuffer = if (space == .world) &self.worldRequests else &self.screenRequests;
     targetBuffer.append(.{ .depth = depth, .shader = self.currentShader, .data = .{ .Line = .{

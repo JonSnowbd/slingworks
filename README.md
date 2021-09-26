@@ -18,7 +18,6 @@ access to the very same tools you used to make the games content for free!
 Right now there are several pieces of Slingwork missing or lacking polish:
 
 - Services
-- Spritefonts
 - Gamepad support
 - Linux support
 
@@ -69,9 +68,8 @@ Keep in mind:
 
 #### Wheres the example?
 
-For now Slingworks will stand with basic tutorials and very very basic 
-examples, but stay tuned for an all encompassing example in a separate
-repo!
+Check out the open source full game in development that will serve as the all encompassing example
+for slingworks, named [Underburrow](https://github.com/JonSnowbd/underburrow)!
 
 #### My built game requested local network permissions?
 

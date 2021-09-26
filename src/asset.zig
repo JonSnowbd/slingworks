@@ -16,6 +16,7 @@ pub const Texture = struct {
     internal: zt.gl.Texture,
     whitePixel: ?zt.math.Rect = null,
 };
+pub const Font = @import("font.zig");
 
 /// Don't use this to store a reference to a resource, as the pointer given will be invalidated on data resize.
 /// Prefer to use `ensure` to get a pointer to use here instead.
@@ -77,6 +78,9 @@ fn load(comptime T: type, path: []const u8) T {
                 tex.internal.setNearestFilter();
             }
             return tex;
+        },
+        Font => {
+            return Font.loadBmFontAsciiPath(path);
         },
         else => {
             @compileError("Unsupported type in Asset request.");
