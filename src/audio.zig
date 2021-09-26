@@ -23,10 +23,16 @@ pub const Bank = struct {
     }
 };
 
+/// Takes a path and adds the contents of the bank to the audio pool.
+/// Make sure to add Master.bank and Master.strings.bank.
+/// For now you don't have a way to free it, but I'll get to that.
 pub fn loadBank(bankPath: []const u8) void {
     banks.append(Bank.loadImpl(bankPath)) catch unreachable;
 }
 
+/// Given a GUID or a Path identifier inside of the fmod project, creates
+/// an event for you to use to trigger sounds.
+/// For an example, '{AAAA-AAAA-AAAA-AAAA}'' or 'event:/footsteps'
 pub fn makeEvent(eventName: []const u8) Event {
     var evt = Event{ .raw = undefined };
 
@@ -48,14 +54,18 @@ pub fn makeEvent(eventName: []const u8) Event {
 pub const Event = struct {
     volume: f32 = 1.0,
     raw: usize,
+    /// Where param is the name of the event's parameter, and value is its new value.
+    /// Note you must provide the enum's index in the case of enum parameter values.
     pub fn set(self: *Event, param: []const u8, value: f32) void {
         var inst: ?*fmod.FMOD_STUDIO_EVENTINSTANCE = events.getCopy(self.raw);
         errCheck(fmod.FMOD_Studio_EventInstance_SetParameterByName(inst, param.ptr, value, 1), "Setting event parameter by name");
     }
+    /// In a timeline event, seek to a certain time.
     pub fn seek(self: *Event, timelineMs: i32) void {
         var inst: ?*fmod.FMOD_STUDIO_EVENTINSTANCE = events.getCopy(self.raw);
         errCheck(fmod.FMOD_Studio_EventInstance_SetTimelinePosition(inst, @intCast(c_int, timelineMs)), "Setting event timeline");
     }
+    /// Triggers a play event, or causes the timeline to start.
     pub fn play(self: *Event) void {
         var inst: ?*fmod.FMOD_STUDIO_EVENTINSTANCE = events.getCopy(self.raw);
         errCheck(fmod.FMOD_Studio_EventInstance_Start(inst), "Playing event instance");
@@ -64,10 +74,12 @@ pub const Event = struct {
         var inst: ?*fmod.FMOD_STUDIO_EVENTINSTANCE = events.getCopy(self.raw);
         errCheck(fmod.FMOD_Studio_EventInstance_TriggerCue(inst), "Triggering cue in event instance");
     }
+    /// Stops the current sound (allowing it to fade out if set to do so), but does not release it.
     pub fn stop(self: *Event) void {
         var inst: ?*fmod.FMOD_STUDIO_EVENTINSTANCE = events.getCopy(self.raw);
         errCheck(fmod.FMOD_Studio_EventInstance_Stop(inst, fmod.FMOD_STUDIO_STOP_ALLOWFADEOUT), "Stopping event instance");
     }
+    /// Invalidates the event, and frees it from fmod.
     pub fn release(self: *Event) void {
         var inst: ?*fmod.FMOD_STUDIO_EVENTINSTANCE = events.getCopy(self.raw);
         errCheck(fmod.FMOD_Studio_EventInstance_Release(inst), "Releasing event instance");
@@ -75,10 +87,12 @@ pub const Event = struct {
             std.debug.panic("Failed to release fmod event", .{});
         };
     }
+    /// Immediately ends a sound, without allowing it to fade out. Does not release it.
     pub fn halt(self: *Event) void {
         var inst: ?*fmod.FMOD_STUDIO_EVENTINSTANCE = events.getCopy(self.raw);
         errCheck(fmod.FMOD_Studio_EventInstance_Stop(inst, fmod.FMOD_STUDIO_STOP_IMMEDIATE), "Stopping event instance");
     }
+    /// A value of 1.0 is default volume.
     pub fn setVolume(self: *Event, value: f32) void {
         if (value == self.volume) {
             return;
@@ -95,6 +109,7 @@ fn errCheck(result: fmod.FMOD_RESULT, message: []const u8) void {
     }
 }
 
+/// Do not call this, sling handles it for you.
 pub fn init() void {
     var res: fmod.FMOD_RESULT = undefined;
     res = fmod.FMOD_Studio_System_Create(&sys, fmod.FMOD_VERSION);
@@ -109,6 +124,7 @@ pub fn init() void {
     }
 }
 
+/// Do not call this, sling handles it for you.
 pub fn update() void {
     var res = fmod.FMOD_Studio_System_Update(sys);
     errCheck(res, "Updating FMOD");

@@ -22,7 +22,6 @@ var mode: ?usize = null;
 /// You can pass in offset to have the handles placed away from the point that you're editing,
 /// and a bool to flip the handles in the other direction
 pub fn positionHandle(vector: *sling.math.Vec2, flipHandles: bool, offset: ?sling.math.Vec2) void {
-    // Modes:
     const centerClick: usize = 0;
     const xClick: usize = 1;
     const yClick: usize = 2;

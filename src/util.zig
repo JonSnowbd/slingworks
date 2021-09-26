@@ -36,6 +36,11 @@ pub fn hexToColorString(hexCode: []const u8) sling.math.Vec4 {
     return hexToColor(hex);
 }
 
+/// An allocated format print you dont need to free:
+pub fn tempFmt(comptime fmt: []const u8, params: anytype) []const u8 {
+    return std.fmt.allocPrint(sling.zt.Allocators.ring(), fmt, params) catch unreachable;
+}
+
 /// Depends on each state having an `fn(*SelfState,*Context) ?TaggedUnion` named `update`.
 /// Pass in an `union(enum)` that contains each state, the update signature above
 /// returns the union if it will transition to a new state, or null if it will

@@ -37,11 +37,11 @@ pub const DebugType = enum {
 
 //todo: more debug convenience methods
 
-/// Renders an in world dot unaffected by zoom.
+/// Renders an in world dot unaffected by zoom. Great for one off visualizations.
 pub fn dot(center: sling.math.Vec2, radius: f32, debugMethod: DebugType) void {
     sling.render.circle(.world, sling.render.debugDepth, center, radius / sling.render.camera.zoom, debugMethod.toColor());
 }
-
+/// Renders a solid rectangle over the given world rect. Great for one off visualization.
 pub fn rect(rectangle: sling.math.Rect, debugMethod: DebugType) void {
     sling.render.rectangle(.world, sling.render.debugDepth, rectangle, debugMethod.toColor(), null);
 }

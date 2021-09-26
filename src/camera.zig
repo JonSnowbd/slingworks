@@ -4,18 +4,31 @@ const zt = @import("zt");
 const ig = @import("imgui");
 const sling = @import("sling.zig");
 
+/// Do not manipulate this directly, instead used the setX methods provided.
 position: sling.math.Vec2 = .{},
+/// Do not manipulate this directly, instead used the setX methods provided.
 rotation: f32 = 0,
+/// Do not manipulate this directly, instead used the setX methods provided.
 zoom: f32 = 1.0,
+/// Do not manipulate this directly, instead used the setX methods provided.
 origin: sling.math.Vec2 = .{ .x = 0.5, .y = 0.5 },
 
+/// Do not manipulate this directly, instead used the setX methods provided.
 viewMatrix: sling.math.Mat4 = sling.math.Mat4.identity,
+/// Do not manipulate this directly, instead used the setX methods provided.
 inverseViewMatrix: sling.math.Mat4 = sling.math.Mat4.identity,
+/// Do not manipulate this directly, instead used the setX methods provided.
 projectionMatrix: sling.math.Mat4 = sling.math.Mat4.identity,
 
+/// If you want this to be re-evaluated you can set this to true, and 
+/// viewMatrix, inverseViewMatrix, and projectionMatrix will all
+/// be recalculated.
 dirty: bool = true,
 
+/// Unused for now, but eventually will be used to render your game into
+/// a separate rendertarget, or into an imgui window.
 sizeOverride: ?sling.math.Vec2 = null,
+/// Do not manipulate this directly, is for internal state. Prefer to use `ig.igGetIO().*.DisplaySize`
 currentSize: sling.math.Vec2 = .{},
 
 pub fn init() Self {
@@ -82,10 +95,14 @@ pub fn setRotation(self: *Self, target: sling.math.Vec2) void {
     self.position = target;
 }
 
+/// Translates a world coordinate into the corresponding point in screenspace.
+/// Useful to align user interface items over top of a world item.
 pub fn worldToScreen(self: *Self, point: zt.math.Vec2) zt.math.Vec2 {
     return point.transform4(self.viewMatrix);
 }
 
+/// Translates a screen coordinate into the corresponding point in worldspace.
+/// Useful for casting the mouse/interface position into world coords.
 pub fn screenToWorld(self: *Self, point: zt.math.Vec2) zt.math.Vec2 {
     return point.transform4(self.inverseViewMatrix);
 }
