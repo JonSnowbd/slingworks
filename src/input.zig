@@ -48,6 +48,7 @@ pub const Key = enum(c_int) {
     closeBracket = glfw.GLFW_KEY_RIGHT_BRACKET,
     apostraphe = glfw.GLFW_KEY_APOSTROPHE,
     space = glfw.GLFW_KEY_SPACE,
+    enter = glfw.GLFW_KEY_ENTER,
 
     // Arrows
     arrowUp = glfw.GLFW_KEY_UP,
