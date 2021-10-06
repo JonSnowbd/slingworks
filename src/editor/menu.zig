@@ -100,7 +100,7 @@ fn fileMenu() void {
     }
     ig.igSeparator();
     if (ig.igMenuItem_Bool(sling.dictionary.fileMenuLeave.ptr, null, false, sling.scene != null and sling.inEditor)) {
-        if(sling.scene) |scn| {
+        if (sling.scene) |scn| {
             scn.deinit();
             sling.scene = null;
         }

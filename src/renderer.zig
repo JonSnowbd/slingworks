@@ -399,36 +399,30 @@ pub fn text(self: *Self, space: Space, depth: Depth, fontId: usize, point: sling
     var stamp: sling.math.Vec2 = point;
     var dests: []sling.math.Rect = sling.alloc.alloc(sling.math.Rect, message.len) catch unreachable;
     defer sling.alloc.free(dests);
-    var fullRect: sling.math.Rect = .{
-        .position=point,
-        .size=.{.y=font.information.lineHeight}
-    };
-    for(message) |char, i| {
-        if(char == '\n') {
+    var fullRect: sling.math.Rect = .{ .position = point, .size = .{ .y = font.information.lineHeight } };
+    for (message) |char, i| {
+        if (char == '\n') {
             fullRect.size.y += font.information.lineHeight;
             stamp.x = point.x;
             stamp.y += font.information.lineHeight;
             continue;
         }
-        if(font.characters.get(char)) |character| {
-            dests[i] = sling.math.Rect{
-                .size = character.atlasSourceRect.size,
-                .position = .{
-                    .x = stamp.x+character.offset.x,
-                    .y = stamp.y+character.offset.y,
-                }
-            };
+        if (font.characters.get(char)) |character| {
+            dests[i] = sling.math.Rect{ .size = character.atlasSourceRect.size, .position = .{
+                .x = stamp.x + character.offset.x,
+                .y = stamp.y + character.offset.y,
+            } };
             stamp.x += character.advance;
 
-            fullRect.size.x = std.math.max(fullRect.size.x, stamp.x-point.x);
+            fullRect.size.x = std.math.max(fullRect.size.x, stamp.x - point.x);
         }
     }
-    var offset = if(originNormalized == null) sling.math.Vec2{} else fullRect.size.mul(originNormalized.?);
-    for(message) |char, i| {
-        if(char == '\n') {
+    var offset = if (originNormalized == null) sling.math.Vec2{} else fullRect.size.mul(originNormalized.?);
+    for (message) |char, i| {
+        if (char == '\n') {
             continue;
         }
-        if(font.characters.get(char)) |character| {
+        if (font.characters.get(char)) |character| {
             const sourceRect = character.atlasSourceRect;
             const id = font.pages.items[character.atlas];
             const pos = dests[i].position.sub(offset);

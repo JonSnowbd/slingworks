@@ -3,7 +3,7 @@ const zt = @import("zt");
 const sling = @import("../sling.zig");
 const ig = @import("imgui");
 
-const LogType = struct{
+const LogType = struct {
     style: sling.debug.DebugType,
     icon: ?[]const u8,
     ownedText: []const u8,
@@ -13,12 +13,12 @@ var catchup: bool = false;
 var log = std.ArrayList(LogType).init(sling.alloc);
 
 pub fn update() void {
-    if(ig.igBegin(sling.dictionary.windowTitleConsole.ptr, null, ig.ImGuiWindowFlags_None)) {
-        for(log.items) |message| {
-            var txt = zt.custom_components.fmtTextForImgui("{s} - {s}", .{message.icon, message.ownedText});
+    if (ig.igBegin(sling.dictionary.windowTitleConsole.ptr, null, ig.ImGuiWindowFlags_None)) {
+        for (log.items) |message| {
+            var txt = zt.custom_components.fmtTextForImgui("{s} - {s}", .{ message.icon, message.ownedText });
             ig.igTextColored(message.style.toColor(), txt.ptr);
         }
-        if(ig.igGetScrollY() >= 0.9875 or catchup) {
+        if (ig.igGetScrollY() >= 0.9875 or catchup) {
             ig.igSetScrollHereY(1.0);
             catchup = false;
         }

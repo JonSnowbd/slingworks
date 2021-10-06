@@ -84,7 +84,7 @@ pub const Interface = struct {
         /// The objects inside can be represented by non-generic text, this gets those names.
         getName: fn (*Interface, usize) []const u8,
         /// Copies all the data from the first index into the second.
-        copyFromTo: fn (*Interface, usize,usize) void,
+        copyFromTo: fn (*Interface, usize, usize) void,
     };
     pub const Singleton = struct {
         editor: fn (*Interface) void,

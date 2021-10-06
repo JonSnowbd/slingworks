@@ -16,11 +16,11 @@ pub fn editorUI() void {
             objectEditor(scene);
         }
     }
-    if(sling.settings.hideConsoleInRooms) {
-        if(sling.room == null) {
+    if (sling.settings.hideConsoleInRooms) {
+        if (sling.room == null) {
             console.update();
         }
-    }else {
+    } else {
         console.update();
     }
 }
@@ -82,7 +82,7 @@ fn objectEditor(scene: *sling.Scene) void {
                         ig.igSameLine(ws.x - 44, 0);
                         if (ig.igButton(sling.dictionary.duplicate.ptr, .{ .x = 20, .y = s.y })) {
                             interface.data.Collection.append(interface);
-                            interface.data.Collection.copyFromTo(interface, scene.editorData.selectedEntity, interface.data.Collection.getCount(interface)-1);
+                            interface.data.Collection.copyFromTo(interface, scene.editorData.selectedEntity, interface.data.Collection.getCount(interface) - 1);
                         }
                         if (ig.igIsItemHovered(ig.ImGuiHoveredFlags_None)) {
                             ig.igBeginTooltip();
@@ -98,14 +98,14 @@ fn objectEditor(scene: *sling.Scene) void {
                             var txt = interface.data.Collection.getName(interface, j);
 
                             var openNode = ig.igSelectable_Bool(txt.ptr, i == scene.editorData.selectedObjectGroup and j == scene.editorData.selectedEntity, ig.ImGuiSelectableFlags_SpanAvailWidth, .{});
-                            if(ig.igBeginPopupContextItem("ENTITY_POPUP_CONTEXT", ig.ImGuiPopupFlags_MouseButtonRight)) {
-                                if(ig.igSelectable_Bool("Delete", false, ig.ImGuiSelectableFlags_None, .{.x=110})) {
+                            if (ig.igBeginPopupContextItem("ENTITY_POPUP_CONTEXT", ig.ImGuiPopupFlags_MouseButtonRight)) {
+                                if (ig.igSelectable_Bool("Delete", false, ig.ImGuiSelectableFlags_None, .{ .x = 110 })) {
                                     interface.data.Collection.remove(interface, j);
                                     max -= 1;
                                 }
-                                if(ig.igSelectable_Bool("Duplicate", false, ig.ImGuiSelectableFlags_None, .{.x=110})) {
+                                if (ig.igSelectable_Bool("Duplicate", false, ig.ImGuiSelectableFlags_None, .{ .x = 110 })) {
                                     interface.data.Collection.append(interface);
-                                    interface.data.Collection.copyFromTo(interface, j, interface.data.Collection.getCount(interface)-1);
+                                    interface.data.Collection.copyFromTo(interface, j, interface.data.Collection.getCount(interface) - 1);
                                 }
                                 ig.igEndPopup();
                             }
