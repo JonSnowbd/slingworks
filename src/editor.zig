@@ -69,6 +69,9 @@ fn objectEditor(scene: *sling.Scene) void {
                     }
                 },
                 .Collection => {
+                    if (scene.editorData.selectedObjectGroup == i) {
+                        ig.igSetNextItemOpen(true, ig.ImGuiCond_Once);
+                    }
                     var open = ig.igTreeNode_Str(interface.information.name.ptr);
                     var s: ig.ImVec2 = undefined;
                     var ws: ig.ImVec2 = undefined;
@@ -77,8 +80,9 @@ fn objectEditor(scene: *sling.Scene) void {
                     ig.igSameLine(ws.x - 22, 0);
                     if (ig.igButton(sling.dictionary.addNew.ptr, .{ .x = 20, .y = s.y })) {
                         interface.data.Collection.append(interface);
+                        scene.editorData.selectedObjectGroup = i;
                     }
-                    if (scene.editorData.selectedObjectGroup == i) {
+                    if (scene.editorData.selectedObjectGroup == i and interface.data.Collection.getCount(interface) > 0) {
                         ig.igSameLine(ws.x - 44, 0);
                         if (ig.igButton(sling.dictionary.duplicate.ptr, .{ .x = 20, .y = s.y })) {
                             interface.data.Collection.append(interface);

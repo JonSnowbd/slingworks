@@ -1,6 +1,3 @@
-//! TODO: I want to move away from nested text serializer to something
-//! more ergonomically appropriate for sling, I'll work on this little by little
-//! whenever I get a chance. Not in use yet.
 const std = @import("std");
 
 pub const json = @import("serializer_json.zig");
@@ -484,7 +481,7 @@ pub const Node = struct {
                 var tagName = self.data.Map.get("tag").?.data.Literal.String;
 
                 inline for (typeInfo.Union.fields) |field| {
-                    if (std.mem.eql(u8, @typeName(field.field_type), tagName)) {
+                    if (std.mem.eql(u8, field.name, tagName)) {
                         var nodeData = self.data.Map.get("value").?;
                         var temporary: field.field_type = undefined;
                         nodeData.into(&temporary, owner);
