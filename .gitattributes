@@ -1,0 +1,4 @@
+src/cimgui/** linguist-vendored
+src/sokol/c/** linguist-vendored
+
+*.zig text eol=lf

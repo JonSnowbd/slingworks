@@ -1,59 +1,115 @@
 const std = @import("std");
-const ztBuild = @import("src/deps/ZT/build.zig");
-
-// ZLS kinda freaks out about not having a build file to parse, so this is
-// a dummy build.
-pub fn build(b: *std.build.Builder) void {
-    const target = b.standardTargetOptions(.{});
-    const mode = b.standardReleaseOptions();
-
-    const exe = b.addExecutable("fake", "./fakeMain.zig");
-    exe.linkLibC();
-    exe.setTarget(target);
-    exe.setBuildMode(mode);
-    link(exe);
-    exe.install();
-}
+const fs = std.fs;
 
 fn getRelativePath() []const u8 {
     comptime var src: std.builtin.SourceLocation = @src();
     return std.fs.path.dirname(src.file).? ++ std.fs.path.sep_str;
 }
 
-pub fn link(exe: *std.build.LibExeObjStep) void {
-    comptime var path = getRelativePath();
+pub const addGameContent = @import("build_util.zig").addBinaryContent;
+/// TODO: This doesnt quite work as well as I'd like yet
+const compileShaders = @import("build_util.zig").shaders;
 
-    ztBuild.link(exe.builder, exe, exe.target);
-    const slingPkg = std.build.Pkg{ .name = "sling", .path = .{
-        .path = path ++ "src/sling.zig",
-    }, .dependencies = &[_]std.build.Pkg{
-        ztBuild.ztPkg,
-        ztBuild.glfwPkg,
-        ztBuild.glPkg,
-        ztBuild.imguiPkg,
-        ztBuild.stbPkg,
-    } };
-    exe.addPackage(slingPkg);
+pub fn build(b: *std.build.Builder) void {
+    const target = b.standardTargetOptions(.{});
+    const mode = b.standardReleaseOptions();
 
-    // TODO: Linux
-    if (exe.target.isWindows()) {
-        exe.target.cpu_arch = .x86_64;
-        if (exe.builder.is_release) { // Release builds wont want to include the commandline.
-            exe.subsystem = .Windows;
-        }
-        // Core
-        exe.addIncludeDir("C:/Program Files (x86)/FMOD SoundSystem/FMOD Studio API Windows/api/core/inc");
-        exe.addObjectFile("C:/Program Files (x86)/FMOD SoundSystem/FMOD Studio API Windows/api/core/lib/x64/fmod_vc.lib");
+    const exe = b.addExecutable("example", "./example.zig");
+    exe.setTarget(target);
+    exe.setBuildMode(mode);
+    link(exe);
+    exe.install();
 
-        // Studio
-        exe.addIncludeDir("C:/Program Files (x86)/FMOD SoundSystem/FMOD Studio API Windows/api/studio/inc");
-        exe.addObjectFile("C:/Program Files (x86)/FMOD SoundSystem/FMOD Studio API Windows/api/studio/lib/x64/fmodstudio_vc.lib");
-
-        var core = exe.builder.addInstallFile(.{ .path = "C:/Program Files (x86)/FMOD SoundSystem/FMOD Studio API Windows/api/studio/lib/x64/fmodstudio.dll" }, "bin/fmodstudio.dll");
-        var studio = exe.builder.addInstallFile(.{ .path = "C:/Program Files (x86)/FMOD SoundSystem/FMOD Studio API Windows/api/core/lib/x64/fmod.dll" }, "bin/fmod.dll");
-        exe.step.dependOn(&core.step);
-        exe.step.dependOn(&studio.step);
+    // Run cmd
+    const run_cmd = exe.run();
+    run_cmd.step.dependOn(b.getInstallStep());
+    if (b.args) |args| {
+        run_cmd.addArgs(args);
     }
+    const run_step = b.step("run", "Run the app");
+    run_step.dependOn(&run_cmd.step);
 }
 
-pub const addBinaryContent = ztBuild.addBinaryContent;
+pub fn link(exe: *std.build.LibExeObjStep) void {
+    if(exe.builder.is_release) {
+        exe.subsystem = .Windows; // Disable the console if release
+        exe.want_lto = false; // Also tls_index gets lost if we lto.
+    }
+    linkSokol(exe);
+    linkImGui(exe);
+    // Link stb_image
+    {
+        exe.linkLibC();
+        exe.addCSourceFile(getRelativePath()++"src/deps/stb_image.c", &[_][]const u8{});
+    }
+    exe.addPackagePath("sling", getRelativePath()++"src/main.zig");
+}
+
+fn linkSokol(exe: *std.build.LibExeObjStep) void {
+    comptime var prefix = getRelativePath();
+    var b = exe.builder;
+    var target = exe.target;
+    exe.linkLibC();
+    exe.linkLibCpp();
+    const sokol_path = prefix ++ "src/sokol/c/";
+    const csources = [_][]const u8 {
+        "sokol_app.c",
+        "sokol_gfx.c",
+        "sokol_time.c",
+    };
+    var flagContainer = std.ArrayList([]const u8).init(std.heap.page_allocator);
+    flagContainer.append("-DIMPL") catch unreachable;
+    flagContainer.append("-O2") catch unreachable;
+    if (target.isDarwin()) {
+        b.env_map.put("ZIG_SYSTEM_LINKER_HACK", "1") catch unreachable;
+        flagContainer.append("-ObjC") catch unreachable;
+        exe.linkFramework("MetalKit");
+        exe.linkFramework("Metal");
+        exe.linkFramework("Cocoa");
+        exe.linkFramework("QuartzCore");
+    } else {
+        if (target.isLinux()) {
+            exe.linkSystemLibrary("X11");
+            exe.linkSystemLibrary("Xi");
+            exe.linkSystemLibrary("Xcursor");
+            exe.linkSystemLibrary("GL");
+        }
+        else if (target.isWindows()) {
+            exe.linkSystemLibrary("kernel32");
+            exe.linkSystemLibrary("user32");
+            exe.linkSystemLibrary("gdi32");
+            exe.linkSystemLibrary("ole32");
+            exe.linkSystemLibrary("d3d11");
+            exe.linkSystemLibrary("dxgi");
+        }
+    }
+    inline for (csources) |csrc| {
+        exe.addCSourceFile(sokol_path ++ csrc, flagContainer.items);
+    }
+}
+fn linkImGui(exe: *std.build.LibExeObjStep) void {
+    comptime var path = getRelativePath();
+    exe.linkLibC();
+    exe.linkLibCpp();
+
+    // Generate flags.
+    var flagContainer = std.ArrayList([]const u8).init(std.heap.page_allocator);
+    flagContainer.append("-O2") catch unreachable;
+    flagContainer.append("-Wno-return-type-c-linkage") catch unreachable;
+    flagContainer.append("-fno-sanitize=undefined") catch unreachable;
+
+    // Link libraries.
+    if (exe.target.isWindows()) {
+        exe.linkSystemLibrary("winmm");
+        exe.linkSystemLibrary("user32");
+        exe.linkSystemLibrary("imm32");
+        exe.linkSystemLibrary("gdi32");
+    }
+
+    // Include dirs.
+    exe.addIncludeDir(path ++ "src/cimgui/imgui");
+    exe.addIncludeDir(path ++ "src/cimgui");
+
+    // Add C
+    exe.addCSourceFiles(&.{ path ++ "src/cimgui/imgui/imgui.cpp", path ++ "src/cimgui/imgui/imgui_demo.cpp", path ++ "src/cimgui/imgui/imgui_draw.cpp", path ++ "src/cimgui/imgui/imgui_tables.cpp", path ++ "src/cimgui/imgui/imgui_widgets.cpp", path ++ "src/cimgui/cimgui.cpp", }, flagContainer.items);
+}

@@ -1,18 +1,9 @@
-# zig
 zig-out/
 zig-cache/
-
-# misc
+/release/
+/debug/
 /build/
 /build-*/
 /docgen_tmp/
-
-# slingwork
 imgui.ini
 workspace
-settings
-
-# fmod
-.cache/
-.unsaved/
-.user/
