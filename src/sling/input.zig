@@ -1,9 +1,7 @@
-const zt = @import("deps/ZT/src/zt.zig");
 const std = @import("std");
-const sling = @import("sling.zig");
-
-const ig = @import("imgui");
-const glfw = @import("glfw");
+const sling = @import("../main.zig");
+const ig = sling.package.imgui;
+const sapp = sling.package.sokol.app;
 
 pub var worldMouseDelta: sling.math.Vec2 = .{};
 pub var worldMouse: sling.math.Vec2 = .{};
@@ -13,141 +11,123 @@ pub var mwheel: f32 = 0;
 
 var io: [*c]ig.ImGuiIO = undefined;
 
-pub var config: struct {
-    /// If true, mouse input is stopped when hovering over an imgui panel,
-    /// and key input is halted when entering text.
-    imguiBlocksInput: bool = true,
-} = .{};
-
-pub const Key = enum(c_int) {
+pub const Key = enum(i32) {
     // Mouse
-    lmb = glfw.GLFW_MOUSE_BUTTON_LEFT,
-    rmb = glfw.GLFW_MOUSE_BUTTON_RIGHT,
-    mmb = glfw.GLFW_MOUSE_BUTTON_MIDDLE,
+    lmb = @enumToInt(sapp.Mousebutton.LEFT),
+    rmb = @enumToInt(sapp.Mousebutton.RIGHT),
+    mmb = @enumToInt(sapp.Mousebutton.MIDDLE),
 
     // Mods
-    lCtrl = glfw.GLFW_KEY_LEFT_CONTROL,
-    rCtrl = glfw.GLFW_KEY_RIGHT_CONTROL,
-    lAlt = glfw.GLFW_KEY_LEFT_ALT,
-    rAlt = glfw.GLFW_KEY_RIGHT_ALT,
-    lShift = glfw.GLFW_KEY_LEFT_SHIFT,
-    rShift = glfw.GLFW_KEY_RIGHT_SHIFT,
+    lCtrl = @enumToInt(sapp.Keycode.LEFT_CONTROL),
+    rCtrl = @enumToInt(sapp.Keycode.RIGHT_CONTROL),
+    lAlt = @enumToInt(sapp.Keycode.LEFT_ALT),
+    rAlt = @enumToInt(sapp.Keycode.RIGHT_ALT),
+    lShift = @enumToInt(sapp.Keycode.LEFT_SHIFT),
+    rShift = @enumToInt(sapp.Keycode.RIGHT_SHIFT),
 
     // Special
-    capslock = glfw.GLFW_KEY_CAPS_LOCK,
-    tilde = glfw.GLFW_KEY_GRAVE_ACCENT,
-    backslash = glfw.GLFW_KEY_BACKSLASH,
-    forwardslash = glfw.GLFW_KEY_SLASH,
-    backspace = glfw.GLFW_KEY_BACKSPACE,
-    tab = glfw.GLFW_KEY_TAB,
-    escape = glfw.GLFW_KEY_ESCAPE,
-    comma = glfw.GLFW_KEY_COMMA,
-    period = glfw.GLFW_KEY_PERIOD,
-    semicolon = glfw.GLFW_KEY_SEMICOLON,
-    openBracket = glfw.GLFW_KEY_LEFT_BRACKET,
-    closeBracket = glfw.GLFW_KEY_RIGHT_BRACKET,
-    apostraphe = glfw.GLFW_KEY_APOSTROPHE,
-    space = glfw.GLFW_KEY_SPACE,
-    enter = glfw.GLFW_KEY_ENTER,
+    capslock = @enumToInt(sapp.Keycode.CAPS_LOCK),
+    tilde = @enumToInt(sapp.Keycode.GRAVE_ACCENT),
+    backslash = @enumToInt(sapp.Keycode.BACKSLASH),
+    forwardslash = @enumToInt(sapp.Keycode.SLASH),
+    backspace = @enumToInt(sapp.Keycode.BACKSPACE),
+    tab = @enumToInt(sapp.Keycode.TAB),
+    escape = @enumToInt(sapp.Keycode.ESCAPE),
+    comma = @enumToInt(sapp.Keycode.COMMA),
+    period = @enumToInt(sapp.Keycode.PERIOD),
+    semicolon = @enumToInt(sapp.Keycode.SEMICOLON),
+    openBracket = @enumToInt(sapp.Keycode.LEFT_BRACKET),
+    closeBracket = @enumToInt(sapp.Keycode.RIGHT_BRACKET),
+    apostraphe = @enumToInt(sapp.Keycode.APOSTROPHE),
+    space = @enumToInt(sapp.Keycode.SPACE),
+    enter = @enumToInt(sapp.Keycode.ENTER),
 
     // Arrows
-    arrowUp = glfw.GLFW_KEY_UP,
-    arrowDown = glfw.GLFW_KEY_DOWN,
-    arrowLeft = glfw.GLFW_KEY_LEFT,
-    arrowRight = glfw.GLFW_KEY_RIGHT,
+    arrowUp = @enumToInt(sapp.Keycode.UP),
+    arrowDown = @enumToInt(sapp.Keycode.DOWN),
+    arrowLeft = @enumToInt(sapp.Keycode.LEFT),
+    arrowRight = @enumToInt(sapp.Keycode.RIGHT),
 
     // F Keys
-    f1_ = glfw.GLFW_KEY_F1,
-    f2_ = glfw.GLFW_KEY_F2,
-    f3_ = glfw.GLFW_KEY_F3,
-    f4_ = glfw.GLFW_KEY_F4,
-    f5_ = glfw.GLFW_KEY_F5,
-    f6_ = glfw.GLFW_KEY_F6,
-    f7_ = glfw.GLFW_KEY_F7,
-    f8_ = glfw.GLFW_KEY_F8,
-    f9_ = glfw.GLFW_KEY_F9,
-    f10_ = glfw.GLFW_KEY_F10,
-    f11_ = glfw.GLFW_KEY_F11,
-    f12_ = glfw.GLFW_KEY_F12,
-    f13_ = glfw.GLFW_KEY_F13,
-    f14_ = glfw.GLFW_KEY_F14,
-    f15_ = glfw.GLFW_KEY_F15,
-    f16_ = glfw.GLFW_KEY_F16,
-    f17_ = glfw.GLFW_KEY_F17,
-    f18_ = glfw.GLFW_KEY_F18,
-    f19_ = glfw.GLFW_KEY_F19,
-    f20_ = glfw.GLFW_KEY_F20,
-    f21_ = glfw.GLFW_KEY_F21,
-    f22_ = glfw.GLFW_KEY_F22,
-    f23_ = glfw.GLFW_KEY_F23,
-    f24_ = glfw.GLFW_KEY_F24,
-    f25_ = glfw.GLFW_KEY_F25,
+    F1 = @enumToInt(sapp.Keycode.F1),
+    F2 = @enumToInt(sapp.Keycode.F2),
+    F3 = @enumToInt(sapp.Keycode.F3),
+    F4 = @enumToInt(sapp.Keycode.F4),
+    F5 = @enumToInt(sapp.Keycode.F5),
+    F6 = @enumToInt(sapp.Keycode.F6),
+    F7 = @enumToInt(sapp.Keycode.F7),
+    F8 = @enumToInt(sapp.Keycode.F8),
+    F9 = @enumToInt(sapp.Keycode.F9),
+    F10 = @enumToInt(sapp.Keycode.F10),
+    F11 = @enumToInt(sapp.Keycode.F11),
+    F12 = @enumToInt(sapp.Keycode.F12),
+    F13 = @enumToInt(sapp.Keycode.F13),
+    F14 = @enumToInt(sapp.Keycode.F14),
+    F15 = @enumToInt(sapp.Keycode.F15),
+    F16 = @enumToInt(sapp.Keycode.F16),
+    F17 = @enumToInt(sapp.Keycode.F17),
+    F18 = @enumToInt(sapp.Keycode.F18),
+    F19 = @enumToInt(sapp.Keycode.F19),
+    F20 = @enumToInt(sapp.Keycode.F20),
+    F21 = @enumToInt(sapp.Keycode.F21),
+    F22 = @enumToInt(sapp.Keycode.F22),
+    F23 = @enumToInt(sapp.Keycode.F23),
+    F24 = @enumToInt(sapp.Keycode.F24),
+    F25 = @enumToInt(sapp.Keycode.F25),
 
     // Numeric
-    n1 = glfw.GLFW_KEY_1,
-    n2 = glfw.GLFW_KEY_2,
-    n3 = glfw.GLFW_KEY_3,
-    n4 = glfw.GLFW_KEY_4,
-    n5 = glfw.GLFW_KEY_5,
-    n6 = glfw.GLFW_KEY_6,
-    n7 = glfw.GLFW_KEY_7,
-    n8 = glfw.GLFW_KEY_8,
-    n9 = glfw.GLFW_KEY_9,
-    n0 = glfw.GLFW_KEY_0,
-    minus = glfw.GLFW_KEY_MINUS,
-    equals = glfw.GLFW_KEY_EQUAL,
+    n1 = @enumToInt(sapp.Keycode._1),
+    n2 = @enumToInt(sapp.Keycode._2),
+    n3 = @enumToInt(sapp.Keycode._3),
+    n4 = @enumToInt(sapp.Keycode._4),
+    n5 = @enumToInt(sapp.Keycode._5),
+    n6 = @enumToInt(sapp.Keycode._6),
+    n7 = @enumToInt(sapp.Keycode._7),
+    n8 = @enumToInt(sapp.Keycode._8),
+    n9 = @enumToInt(sapp.Keycode._9),
+    n0 = @enumToInt(sapp.Keycode._0),
+    minus = @enumToInt(sapp.Keycode.MINUS),
+    equals = @enumToInt(sapp.Keycode.EQUAL),
 
     // Alpha
-    q = glfw.GLFW_KEY_Q,
-    w = glfw.GLFW_KEY_W,
-    e = glfw.GLFW_KEY_E,
-    r = glfw.GLFW_KEY_R,
-    t = glfw.GLFW_KEY_T,
-    y = glfw.GLFW_KEY_Y,
-    u = glfw.GLFW_KEY_U,
-    i = glfw.GLFW_KEY_I,
-    o = glfw.GLFW_KEY_O,
-    p = glfw.GLFW_KEY_P,
-    a = glfw.GLFW_KEY_A,
-    s = glfw.GLFW_KEY_S,
-    d = glfw.GLFW_KEY_D,
-    f = glfw.GLFW_KEY_F,
-    g = glfw.GLFW_KEY_G,
-    h = glfw.GLFW_KEY_H,
-    j = glfw.GLFW_KEY_J,
-    k = glfw.GLFW_KEY_K,
-    l = glfw.GLFW_KEY_L,
-    z = glfw.GLFW_KEY_Z,
-    x = glfw.GLFW_KEY_X,
-    c = glfw.GLFW_KEY_C,
-    v = glfw.GLFW_KEY_V,
-    b = glfw.GLFW_KEY_B,
-    n = glfw.GLFW_KEY_N,
-    m = glfw.GLFW_KEY_M,
+    q = @enumToInt(sapp.Keycode.Q),
+    w = @enumToInt(sapp.Keycode.W),
+    e = @enumToInt(sapp.Keycode.E),
+    r = @enumToInt(sapp.Keycode.R),
+    t = @enumToInt(sapp.Keycode.T),
+    y = @enumToInt(sapp.Keycode.Y),
+    u = @enumToInt(sapp.Keycode.U),
+    i = @enumToInt(sapp.Keycode.I),
+    o = @enumToInt(sapp.Keycode.O),
+    p = @enumToInt(sapp.Keycode.P),
+    a = @enumToInt(sapp.Keycode.A),
+    s = @enumToInt(sapp.Keycode.S),
+    d = @enumToInt(sapp.Keycode.D),
+    f = @enumToInt(sapp.Keycode.F),
+    g = @enumToInt(sapp.Keycode.G),
+    h = @enumToInt(sapp.Keycode.H),
+    j = @enumToInt(sapp.Keycode.J),
+    k = @enumToInt(sapp.Keycode.K),
+    l = @enumToInt(sapp.Keycode.L),
+    z = @enumToInt(sapp.Keycode.Z),
+    x = @enumToInt(sapp.Keycode.X),
+    c = @enumToInt(sapp.Keycode.C),
+    v = @enumToInt(sapp.Keycode.V),
+    b = @enumToInt(sapp.Keycode.B),
+    n = @enumToInt(sapp.Keycode.N),
+    m = @enumToInt(sapp.Keycode.M),
 
     inline fn keyCheck(key: Key) bool {
         if (key.isMouse()) {
-            if (config.imguiBlocksInput and io.*.WantCaptureMouse) {
-                return false;
-            }
             return io.*.MouseDown[@intCast(usize, @enumToInt(key))];
         } else {
-            if (config.imguiBlocksInput and io.*.WantCaptureKeyboard) {
-                return false;
-            }
             return io.*.KeysDown[@intCast(usize, @enumToInt(key))];
         }
     }
     inline fn keyDur(key: Key) f32 {
         if (key.isMouse()) {
-            if (config.imguiBlocksInput and io.*.WantCaptureMouse) {
-                return 0.0;
-            }
             return io.*.MouseDownDuration[@intCast(usize, @enumToInt(key))];
         } else {
-            if (config.imguiBlocksInput and io.*.WantCaptureKeyboard) {
-                return 0.0;
-            }
             return io.*.KeysDownDuration[@intCast(usize, @enumToInt(key))];
         }
     }
@@ -202,10 +182,6 @@ pub fn pump() void {
         prevWorldMouse = worldMouse;
     }
     worldMouseDelta = worldMouse.sub(prevWorldMouse);
-    if (config.imguiBlocksInput and io.*.WantCaptureMouse) {
-        mwheel = 0;
-    } else {
-        mwheel = io.*.MouseWheel;
-    }
+    mwheel = io.*.MouseWheel;
     prevWorldMouse = worldMouse;
 }

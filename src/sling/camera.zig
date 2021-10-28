@@ -97,11 +97,11 @@ pub fn setRotation(self: *Self, target: sling.math.Vec2) void {
 /// Translates a world coordinate into the corresponding point in screenspace.
 /// Useful to align user interface items over top of a world item.
 pub fn worldToScreen(self: *Self, point: sling.math.Vec2) sling.math.Vec2 {
-    return point.transform4(self.viewMatrix);
+    return self.viewMatrix.transformVec2(point);
 }
 
 /// Translates a screen coordinate into the corresponding point in worldspace.
 /// Useful for casting the mouse/interface position into world coords.
 pub fn screenToWorld(self: *Self, point: sling.math.Vec2) sling.math.Vec2 {
-    return point.transform4(self.inverseViewMatrix);
+    return self.inverseViewMatrix.transformVec2(point);
 }

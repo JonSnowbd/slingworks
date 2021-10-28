@@ -51,7 +51,7 @@ pub fn initSpoof(comptime children: anytype) *Self {
     inline for (children) |child, i| {
         var info = sling.Object.GenBuildData(child).information;
         self.editorData.objectToIndex.put(info.name, i) catch unreachable;
-        self.childObjects[i] = info.create(self);
+        self.childObjects[i] = info.autoCreate(self);
     }
 
     return self;
@@ -80,15 +80,15 @@ pub fn initFromInfo(sceneRegister: Register) *Self {
     for (self.childObjects) |*obj, i| {
         var info = sling.Object.Information.get(sceneRegister.dependants.items[i]);
         self.editorData.objectToIndex.put(info.name, i) catch unreachable;
-        obj.* = info.create(self);
+        obj.* = info.autoCreate(self);
     }
     // sling.log("Created a scene from scene register information.");
     return self;
 }
 /// Takes bytes and creates a scene, it correctly picks the scene type for you provided
-/// it exists in your game still.
+/// it exists in your game.
 pub fn initFromBytes(data: []const u8) *Self {
-    var parsed = sling.serializer.json.JsonLexicon.parse(sling.mem.Allocator, data);
+    var parsed = sling.config.preferredStorageLang.parse(sling.mem.Allocator, data);
     defer parsed.deinit();
 
     var self: *Self = sling.mem.Allocator.create(Self) catch unreachable;
@@ -121,7 +121,7 @@ pub fn initFromBytes(data: []const u8) *Self {
             for (slice) |info| {
                 if (std.mem.eql(u8, pair.key_ptr.*, info.name)) {
                     self.editorData.objectToIndex.put(info.name, i) catch unreachable;
-                    self.childObjects[i] = info.createFrom(pair.value_ptr.*, self);
+                    self.childObjects[i] = info.autoCreateFrom(pair.value_ptr.*, self);
                 }
             }
             i += 1;
@@ -164,7 +164,7 @@ pub fn toBytes(self: *Self, allocator: *std.mem.Allocator) []const u8 {
     }
 
     var tree = sling.serializer.Tree.initArena(allocator);
-    tree.config = &sling.preferredSerializationConfig;
+    tree.config = &sling.config.serializationConfig;
     defer tree.deinit();
 
     // Child objects
@@ -182,7 +182,7 @@ pub fn toBytes(self: *Self, allocator: *std.mem.Allocator) []const u8 {
     tree.root.data.Map.put("children", children) catch unreachable;
 
     // Serialize
-    return sling.preferredLexicon.convert(allocator, tree);
+    return sling.config.preferredStorageLang.convert(allocator, tree);
 }
 /// Checks if the scene contains a child type, if it does it is returned. Note
 /// that this reference is invalidated if you modify the group by appending
@@ -215,9 +215,12 @@ pub fn spawn(self: *Self, comptime target: type) ?*target {
     for (self.childObjects) |child| {
         if (std.mem.eql(u8, @typeName(target), child.information.name)) {
             const wrapper = sling.Object.CollectionType(target);
+            // Precache the id so that if the spawned item's init spawns anything else,
+            // the pointer wont be invalidated.
+            const id = child.data.Collection.getCount(child);
             child.data.Collection.append(child);
             var array = @fieldParentPtr(wrapper, "interface", child).value;
-            return &array[array.len - 1];
+            return &array[id];
         }
     }
     return null;

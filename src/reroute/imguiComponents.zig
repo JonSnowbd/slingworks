@@ -127,6 +127,9 @@ pub fn input(label: []const u8, ptr: anytype, params: InputParams) bool {
     // Early outs for specific types
     const fmax = std.math.f32_max;
     switch(T) {
+        []const u8 => {
+
+        },
         math.Vec2 => {
             var temp: [2]f32 = .{ ptr.*.x, ptr.*.y };
             var result = ig.igDragFloat2(label.ptr, &temp, params.step, -fmax, fmax, "%.2f", ig.ImGuiSliderFlags_NoRoundToFormat);
@@ -187,6 +190,36 @@ pub fn input(label: []const u8, ptr: anytype, params: InputParams) bool {
                 ptr.* = @floatCast(T, temp);
             }
             return changed;
+        },
+        .Enum => {
+            var changed: bool = false;
+            var integer = @enumToInt(ptr.*);
+            if (ig.igBeginCombo(label.ptr, @tagName(ptr.*).ptr, ig.ImGuiComboFlags_None)) {
+                inline for (Info.Enum.fields) |enumField, i| {
+                    //label: [*c]const u8, selected: bool, flags: ImGuiSelectableFlags, size: ImVec2
+                    if (ig.igSelectable_Bool(enumField.name.ptr, i == integer, ig.ImGuiSelectableFlags_None, .{})) {
+                        ptr.* = @intToEnum(@TypeOf(ptr.*), i);
+                        changed = true;
+                    }
+                }
+                ig.igEndCombo();
+            }
+            return changed;
+        },
+        .Optional => {
+            if (ptr.* == null) {
+                textDisabled("{s} (null)", .{label});
+                return false;
+            } else {
+                return input(label, &ptr.*.?, params);
+            }
+        },
+        .Array => {
+            if (Info.Array.child == u8 and Info.Array.sentinel != null) {
+                return ig.igInputText(label.ptr, ptr, @intCast(usize, Info.Array.len), ig.ImGuiInputTextFlags_None, null, null);
+            } else {
+                @compileError(@typeName(T) ++ ": This type cannot be edited as a string due to the lack of a sentinel.");
+            }
         },
         .Pointer, .Opaque => {
             @compileError(@typeName(T) ++ " cannot be edited automatically by `imgui.components.input`");

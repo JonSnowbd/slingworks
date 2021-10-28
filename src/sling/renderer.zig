@@ -5,7 +5,7 @@ const sapp = sling.package.sokol.app;
 
 const Self = @This();
 const Vert = struct {pos:sling.math.Vec2,uv:sling.math.Vec2,color:sling.math.Vec4};
-const RenderPipeline = sling.package.reroute.RenderPipeline(Vert, 65536);
+const RenderPipeline = sling.package.reroute.RenderPipeline(Vert, 65536*4);
 const PipelineShader = @import("../reroute/shaders/imgui.glsl.zig");
 
 pub const Space = enum { screen, world };
@@ -109,7 +109,7 @@ pub fn init() Self {
 
     var objDump = sling.asset.manualUpload(sling.Texture, whitePix);
     return .{
-        .fba = std.heap.FixedBufferAllocator.init(sling.mem.Allocator.alloc(u8, 4_000_000) catch unreachable),
+        .fba = std.heap.FixedBufferAllocator.init(sling.mem.Allocator.alloc(u8, 12_000_000) catch unreachable),
         .pipeline=RenderPipeline.init(sling.mem.Allocator, PipelineShader, "imgui"),
         .whitePixelId=objDump,
     };

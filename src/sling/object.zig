@@ -18,6 +18,8 @@ pub const Information = struct {
     var registeredObjects = std.ArrayList(*const Information).init(sling.mem.Allocator);
 
     name: []const u8,
+    autoCreate: fn(*sling.Scene) *Interface,
+    autoCreateFrom: fn(*sling.serializer.Node,*sling.Scene) *Interface,
     create: fn (*sling.Scene) *Interface,
     createSingleton: fn (*sling.Scene) *Interface,
     createFrom: fn (*sling.serializer.Node, *sling.Scene) *Interface,
@@ -93,12 +95,15 @@ pub fn GenBuildData(comptime T: type) type {
     return struct {
         pub const information = Information{
             .name = @typeName(T),
+            .autoCreate = GenAutoCreate,
+            .autoCreateFrom = GenAutoCreateFrom,
             .create = CollectionType(T).objInformation_create,
             .createSingleton = SingletonType(T).objInformation_create,
             .createFrom = CollectionType(T).objInformation_createFrom,
             .createSingletonFrom = SingletonType(T).objInformation_createFrom,
         };
         pub var Instance: ?@This() = null;
+
         const FnWrap = struct {
             func: []const u8,
             clearance: Clearance,
@@ -209,6 +214,7 @@ pub fn GenBuildData(comptime T: type) type {
         _deinitFn: std.ArrayList(FnWrap),
         _update: std.ArrayList(FnWrap),
         _getName: ?fn (*T) []const u8,
+        _prefersSingleton: bool,
         _editorExtension: ?FnWrap,
 
         fn initBuildData(allocator: *std.mem.Allocator) @This() {
@@ -219,10 +225,26 @@ pub fn GenBuildData(comptime T: type) type {
                 ._deinitFn = std.ArrayList(FnWrap).init(allocator),
                 ._update = std.ArrayList(FnWrap).init(allocator),
                 ._getName = null,
+                ._prefersSingleton = false,
                 ._editorExtension = null,
             };
         }
-
+        fn GenAutoCreate(scene:*sling.Scene) *Interface {
+            var build = register();
+            if(build._prefersSingleton) {
+                return information.createSingleton(scene);
+            } else {
+                return information.create(scene);
+            }
+        }
+        fn GenAutoCreateFrom(node: *sling.serializer.Node, scene:*sling.Scene) *Interface {
+            var build = register();
+            if(build._prefersSingleton) {
+                return information.createSingletonFrom(node, scene);
+            } else {
+                return information.createFrom(node, scene);
+            }
+        }
         pub fn deinit(self: *@This()) void {
             self._hidden.deinit();
             self._deinitFn.deinit();
@@ -257,10 +279,12 @@ pub fn GenBuildData(comptime T: type) type {
                 std.debug.panic("Failed to add update system '{s}' to type '{s}' due to:\n{s}", .{ @tagName(method), @typeName(T), @errorName(err) });
             };
         }
+        pub fn prefersSingleton(self: *@This()) void {
+            self._prefersSingleton = true;
+        }
         pub fn editorExtension(self: *@This(), comptime method: DeclEnum(T)) void {
             self._editorExtension = FnWrap.init(@tagName(method), .editorOnly);
         }
-
         pub fn register() *@This() {
             if (Instance == null) {
                 Information.register(&GenBuildData(T).information);

@@ -1,7 +1,9 @@
 const entry = @import("applicationEntry.zig");
 const std = @import("std");
 
-/// Direct access to the packages that sling uses.
+/// Direct access to the packages that sling uses. Things are packed away in here by default,
+/// but only things directly in the sling namespace are intended for public use. You can still
+/// sift through here if you know what you're editing.
 pub const package = struct {
     /// Standard renderer for sling, supports most use-cases for 2d.
     pub const Renderer = @import("sling/renderer.zig");
@@ -23,6 +25,12 @@ pub const package = struct {
     pub const object = @import("sling/object.zig");
     /// Custom serializer made for sling.
     pub const serializer = @import("sling/serializer.zig");
+    /// Simple default rooms and a register struct to manage them.
+    pub const room = @import("sling/room.zig");
+    /// Very simple imgui queries to handle input.
+    pub const input = @import("sling/input.zig");
+    /// Hub for Sling's internal editor interface.
+    pub const editor = @import("editor/editor.zig");
 };
 
 /// A simple 2d camera, you don't need to instantiate this as Sling Renderers will handle
@@ -53,6 +61,10 @@ pub const imgui = package.reroute.imgui;
 /// Utilities related to memory. I recommend using the provided RingBuffer wherever it makes
 /// sense.
 pub const mem = package.reroute.mem;
+/// Contains Room Registration and editor-provided default rooms to use in your game.
+pub const room = package.room;
+/// Contains everything you need to query M+KB state for input.
+pub const input = package.input;
 /// Controls how anything in sling gets turned into bytes and back to data structures.
 pub const serializer = package.serializer;
 /// This is your default renderer, you can call into this from wherever you want, go wild!
@@ -79,8 +91,12 @@ pub const state = struct {
     /// The current scene that is running or being edited, setting this directly isnt
     /// recommended, prefer to use switch, load, push, and pop to change scenes.
     pub var scene: ?*Scene = null;
+    /// Overrides the current scene with a single method that runs each frame, useful for
+    /// test rooms, main menus, settings menu, and dev menus. Basically anything that doesnt
+    /// need serialization.
+    pub var room: ?package.room.Register = null;
     /// This is true if the game was started with the `editor` command line flag.
-    pub var isEditing: bool = false;
+    pub var isEditing: bool = true;
 };
 /// You can modify anything in here directly from anywhere inside your application, and
 /// they will be in effect by the next frame start.
@@ -112,19 +128,13 @@ export fn sling_init() void {
     }
 }
 export fn sling_loop() void {
-    const rg = imgui.components;
-
     // Configure state
     state.dt = entry.dt * config.timeScale;
     state.unscaledDt = entry.dt;
-    state.dockId = rg.dockBackground();
+    state.dockId = imgui.components.dockBackground();
 
-    // Editor
-    if(rg.beginWindow("Test", .{})) {
-        rg.text("{any} drawcalls", .{render.drawCalls});
-        rg.text("{d:.1}fps", .{1.0/state.unscaledDt});
-    }
-    rg.endWindow();
+    input.pump();
+    package.editor.editorUI();
 
     for(loopFunctions.items) |lfn| {
         lfn();
@@ -140,7 +150,8 @@ export fn sling_loop() void {
 // Util functions
 
 /// Use this to automatically register a type into sling if it contains a
-/// `slingIntegration` function of type `fn() void`
+/// `slingIntegration` function of type `fn() void`. Prefer to use this as it will compile
+/// error if something is not meant to be used in sling!
 pub fn integrate(comptime T: type) void {
     if (@hasDecl(T, "slingIntegration")) {
         switch (@typeInfo(@TypeOf(@field(T, "slingIntegration")))) {
@@ -160,7 +171,7 @@ pub fn integrate(comptime T: type) void {
     }
 }
 /// Use this to get the build data for a type. Calling this implicitly
-/// registers a type as an entity.
+/// registers a type as an entity for use as or in a scene.
 pub fn configure(comptime T: type) *Object.GenBuildData(T) {
     const base = Object.GenBuildData(T);
     return base.register();
@@ -170,8 +181,8 @@ pub fn configure(comptime T: type) *Object.GenBuildData(T) {
 pub fn configureInit(initFn: fn()void) void {
     initFunctions.append(initFn) catch unreachable;
 }
-/// Adds an init function as a function to be ran after everything is initialized, do your
-/// global asset loading here, or anything you need to do with imgui.
+/// Adds an loop function as a function to be ran before each update loop. This is pretty
+/// niche and should be used sparingly. Ideas for use include manually
 pub fn configureLoop(loopFn: fn()void) void {
     loopFunctions.append(loopFn) catch unreachable;
 }
@@ -193,4 +204,24 @@ pub fn configureAsScene(comptime T: type, comptime children: anytype) void {
     inline for (children) |childType| {
         sceneEntry.value_ptr.*.dependants.append(Object.Information.indexOf(childType)) catch unreachable;
     }
+}
+
+const console = @import("editor/console.zig");
+pub fn log(message: []const u8) void {
+    console.submit(message, "!");
+}
+pub fn logFmt(comptime fmt: []const u8, params: anytype) void {
+    console.submitFmt(fmt, params, "!");
+}
+pub fn logErr(message: []const u8) void {
+    console.submit(message, "X");
+}
+pub fn logErrFmt(comptime fmt: []const u8, params: anytype) void {
+    console.submitFmt(fmt, params, "X");
+}
+pub fn logWarn(message: []const u8) void {
+    console.submit(message, "?");
+}
+pub fn logWarnFmt(comptime fmt: []const u8, params: anytype) void {
+    console.submitFmt(fmt, params, "?");
 }

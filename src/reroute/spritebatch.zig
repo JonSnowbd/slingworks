@@ -44,8 +44,8 @@ pub fn Generate(comptime Vertex: type, MaxQuads: usize) type {
                 .cull_mode = .DEFAULT
             };
             pipelineDesc.shader = sg.makeShader(shaderDesc);
-            pipelineDesc.color_count = 1;
-            pipelineDesc.colors[0].write_mask = sg.ColorMask.RGB;
+            // pipelineDesc.color_count = 1;
+            pipelineDesc.colors[0].write_mask = sg.ColorMask.RGBA;
             inline for(std.meta.fields(Vertex)) |field,i| {
                 switch(field.field_type) {
                     f32 => {

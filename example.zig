@@ -8,8 +8,7 @@ pub const SceneType = struct {
         config.updateMethod(.update, .both);
     }
     pub fn update(self:*SceneType) void {
-        _ = self;
-        sling.render.rectangle(self.bounds, .{.depth=sling.Depth.init(10),.color=sling.math.Vec4.new(1.0,1.0,0.0,0.5)});
+        sling.render.rectangle(self.bounds, .{.depth=sling.Depth.init(10),.color=sling.math.Vec4.new(1.0,1.0,0.0,0.2)});
     }
 };
 pub const Puck = struct {
@@ -57,9 +56,5 @@ pub fn main() void {
 fn init() void {
     sling.imgui.config.styleColorOrangeSlate();
     sling.imgui.config.styleSizeCompact();
-
-    var newScene = sling.Scene.init(SceneType);
-    _ = newScene.spawn(Puck);
-
-    sling.state.scene = newScene;
+    sling.log("Hello world!");
 }
