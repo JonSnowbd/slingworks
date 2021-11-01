@@ -31,17 +31,18 @@ pub fn build(b: *std.build.Builder) void {
 }
 
 pub fn link(exe: *std.build.LibExeObjStep) void {
-    if(exe.builder.is_release) {
-        exe.subsystem = .Windows; // Disable the console if release
-        exe.want_lto = false; // Also tls_index gets lost if we lto.
+    if(exe.target.isWindows()) {
+        if(exe.builder.is_release) {
+            exe.subsystem = .Windows; // Disable the console if release
+            exe.want_lto = false; // Also tls_index gets lost if we lto.
+        }
     }
+
     linkSokol(exe);
     linkImGui(exe);
     // Link stb_image
-    {
-        exe.linkLibC();
-        exe.addCSourceFile(getRelativePath()++"src/deps/stb_image.c", &[_][]const u8{});
-    }
+    exe.linkLibC();
+    exe.addCSourceFile(getRelativePath()++"src/deps/stb_image.c", &[_][]const u8{});
     exe.addPackagePath("sling", getRelativePath()++"src/main.zig");
 }
 

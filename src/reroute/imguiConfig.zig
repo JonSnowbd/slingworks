@@ -12,37 +12,38 @@ var currentFontId: u32 = 0;
 
 pub const FontStepConfig = struct {
     name: []const u8 = "New Font",
-    size: f32 = 13.0,
-    range:?[2]u8 = null,
+    size: f32 = 18.0,
+    range:?[2]u32 = null,
     includeDefaultRanges:bool = true,
     /// Overdraw of 2 means its rendered at twice the size, and is
     /// smoothed by linear scaling to make a better looking font.
     overdraw:usize = 2,
     pub fn generateConfig(self:FontStepConfig, merger:bool) [*c]ig.ImFontConfig {
         var cfg = ig.ImFontConfig_ImFontConfig();
-        cfg.MergeMode = merger;
+        cfg.*.MergeMode = merger;
         for(self.name) |char,i| {
             if(i >= 40) {break;}
-            cfg.Name[i] = char;
+            cfg.*.Name[i] = char;
         }
-        cfg.OversampleH = @intCast(c_int, self.overdraw);
-        cfg.OversampleV = @intCast(c_int, self.overdraw);
+        cfg.*.OversampleH = @intCast(c_int, self.overdraw);
+        cfg.*.OversampleV = @intCast(c_int, self.overdraw);
         var builder = ig.ImFontGlyphRangesBuilder_ImFontGlyphRangesBuilder();
-        var ranges: ig.ImVector_ImWchar = undefined;
+        var ranges: [*c]ig.ImVector_ImWchar = ig.ImVector_ImWchar_create();
         if(self.includeDefaultRanges) {
-            ig.ImFontGlyphRangesBuilder_AddRanges(builder, ig.ImFontAtlas_GetGlyphRangesDefault(ig.igGetIO().Fonts));
+            ig.ImFontGlyphRangesBuilder_AddRanges(builder, ig.ImFontAtlas_GetGlyphRangesDefault(ig.igGetIO().*.Fonts));
         }
         if(self.range) |customRange| {
             ig.ImFontGlyphRangesBuilder_AddRanges(builder, &[_]u16{@intCast(u16, customRange[0]),@intCast(u16, customRange[1])});
         }
-        ig.ImFontGlyphRangesBuilder_BuildRanges(builder, &ranges);
-        cfg.GlyphRanges = ranges.Data;
+        ig.ImFontGlyphRangesBuilder_BuildRanges(builder, ranges);
+        cfg.*.GlyphRanges = ranges.*.Data;
         return cfg;
     }
 };
 const FontCreationConfig = struct {
     atlas: [*c]ig.ImFontAtlas,
     addedFirstFont: bool = false,
+    nearestNeighbour: bool = false,
     pub fn addDefaultFont(self: *FontCreationConfig) [*c]ig.ImFont {
         self.addedFirstFont = true;
         return ig.ImFontAtlas_AddFontDefault(self.atlas, null);
@@ -53,17 +54,16 @@ const FontCreationConfig = struct {
         self.addedFirstFont = true;
         return ig.ImFontAtlas_AddFontFromFileTTF(self.atlas, path, config.size, cfg, null);
     }
-    /// Adds the embedded icon font to the 
-    pub fn addIconFont(self: *FontCreationConfig) [*c]ig.ImFont {
+    pub fn addEmbeddedTTF(self: *FontCreationConfig, bytes: []const u8, config: FontStepConfig) [*c]ig.ImFont {
+        var copy = std.heap.c_allocator.dupeZ(u8, bytes) catch unreachable;
+        // defer std.heap.c_allocator.free(copy);
+        var compiledConfig = config.generateConfig(self.addedFirstFont);
         self.addedFirstFont = true;
-    }
-    pub fn addEmbeddedTTF(self: *FontCreationConfig) [*c]ig.ImFont {
-        self.addedFirstFont = true;
-        _ = self;
+        return ig.ImFontAtlas_AddFontFromMemoryTTF(self.atlas, copy.ptr, @intCast(c_int, copy.len), config.size, compiledConfig, compiledConfig.*.GlyphRanges);
     }
     pub fn build(self: *FontCreationConfig) void {
-        if(currentFontId != 0) {
-            sg.deallocImage(sg.Image{.id=currentFontId});
+        if(!self.addedFirstFont) {
+            _ = self.addDefaultFont();
         }
         var io = ig.igGetIO();
         // Font stuff, move into config later.
@@ -80,8 +80,8 @@ const FontCreationConfig = struct {
         imageDesc.wrap_u = sg.Wrap.CLAMP_TO_EDGE;
         imageDesc.wrap_v = sg.Wrap.CLAMP_TO_EDGE;
         // We definitely want linear for oversampled fonts.
-        imageDesc.min_filter = sg.Filter.LINEAR;
-        imageDesc.mag_filter = sg.Filter.LINEAR;
+        imageDesc.min_filter = if(self.nearestNeighbour) sg.Filter.NEAREST else sg.Filter.LINEAR;
+        imageDesc.mag_filter = if(self.nearestNeighbour) sg.Filter.NEAREST else sg.Filter.LINEAR;
         imageDesc.label = "imgui_font";
         imageDesc.data.subimage[0][0].ptr = pixels[0..@intCast(usize, w*h)].ptr;
         imageDesc.data.subimage[0][0].size = @intCast(usize, w*h);

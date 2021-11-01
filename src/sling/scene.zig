@@ -2,6 +2,8 @@ const std = @import("std");
 const sling = @import("../main.zig");
 const Self = @This();
 
+/// Try not to insert into this yourself unless you know how it works and what it depends on.
+/// Instead prefer to use `sling.configureScene` to register a scene and its children.
 pub var RegisteredScenes = std.StringHashMap(Register).init(sling.mem.Allocator);
 pub const Register = struct {
     base: usize = undefined,
@@ -36,7 +38,7 @@ pub fn init(comptime baseType: type) *Self {
 /// Children is expected to be a tuple of types that this contains, for example
 /// `.{Player,WeaponPickup,Enemy}`
 pub fn initSpoof(comptime children: anytype) *Self {
-    // sling.logWarn("Creating a spoofed scene");
+    sling.logWarn("Creating a spoofed scene");
     var self: *Self = sling.mem.Allocator.create(Self) catch unreachable;
     self.* = .{};
     const childrenType = @typeInfo(@TypeOf(children));
@@ -57,7 +59,7 @@ pub fn initSpoof(comptime children: anytype) *Self {
     return self;
 }
 pub fn deinit(self: *Self) void {
-    // sling.logWarn("Deiniting a scene.");
+    sling.logWarn("Deiniting a scene.");
     self.editorData.objectToIndex.deinit();
     self.baseObject.deinitAll(self.baseObject);
     self.baseObject.arena.deinit();
@@ -82,7 +84,7 @@ pub fn initFromInfo(sceneRegister: Register) *Self {
         self.editorData.objectToIndex.put(info.name, i) catch unreachable;
         obj.* = info.autoCreate(self);
     }
-    // sling.log("Created a scene from scene register information.");
+    sling.log("Created a scene from scene register information.");
     return self;
 }
 /// Takes bytes and creates a scene, it correctly picks the scene type for you provided
@@ -130,7 +132,7 @@ pub fn initFromBytes(data: []const u8) *Self {
         std.debug.panic("Failed to find a children definition in the provided bytes:\n{s}", .{data});
     }
 
-    // sling.log("Created a scene from raw bytes.");
+    sling.log("Created a scene from raw bytes.");
     return self;
 }
 /// Takes a filepath and creates a scene, it correctly picks the scene type for you provided
@@ -139,7 +141,7 @@ pub fn initFromFilepath(path: []const u8) *Self {
     var bytes = std.fs.cwd().readFileAlloc(sling.mem.Allocator, path, 80_000_000) catch unreachable;
     defer sling.mem.Allocator.free(bytes);
 
-    // sling.logFmt("Creating a scene from filepath {s}", .{path});
+    sling.logFmt("Creating a scene from filepath {s}", .{path});
     var self = initFromBytes(bytes);
 
     var ownedPath = sling.mem.Allocator.dupeZ(u8, path) catch unreachable;

@@ -55,7 +55,7 @@ pub fn ensure(comptime T: type, path: []const u8) usize {
         wrapper.data.append(load(T, path)) catch |err| {
             std.debug.panic("Unknown error when appending to asset list:\n{s}", .{@errorName(err)});
         };
-        std.debug.print("SLING: Asset type \"{s}\" loaded from \"{s}\"\n", .{ @typeName(T), path });
+        sling.logFmt("Asset type \"{s}\" loaded from \"{s}\"", .{ @typeName(T), path });
     }
 
     return resource.value_ptr.*;
@@ -69,7 +69,7 @@ pub fn manualUpload(comptime T: type, object: T) usize {
     wrapper.data.append(object) catch |err| {
         std.debug.panic("Unknown error when fetching from asset lookup hashmap:\n{s}", .{@errorName(err)});
     };
-    std.debug.print("SLING: Asset type \"{s}\" manually uploaded\n", .{ @typeName(T) });
+    sling.logFmt("Asset type \"{s}\" manually uploaded\n", .{ @typeName(T) });
     return id;
 }
 
@@ -90,7 +90,7 @@ fn load(comptime T: type, path: []const u8) T {
             };
             desc.data.subimage[0][0] = .{.ptr=raw, .size=@intCast(usize, @sizeOf(u8)*(w*h*c))};
             var newImage = sg.makeImage(desc);
-            std.debug.print("SLING: Uploaded image #{any} to the gpu. ({any}x{any})\n", .{newImage.id, desc.width, desc.height});
+            sling.logFmt("Uploaded image #{any} to the gpu. ({any}x{any})", .{newImage.id, desc.width, desc.height});
             return newImage;
         },
         // Font => {

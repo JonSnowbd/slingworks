@@ -10,6 +10,11 @@ const sapp = sokol.app;
 /// If you need direct access to imgui, you can do so here.
 pub const raw = ig;
 
+pub var internalBuf: std.heap.FixedBufferAllocator = undefined;
+
+pub const DockingParams = struct {
+    direction: ig.ImGuiDir = ig.ImGuiDir_None,
+};
 pub const WindowParams = struct {
     /// If this pointer exists, it will enable window minimizing, and modify
     /// the target bool to suit the current state.
@@ -19,8 +24,6 @@ pub const WindowParams = struct {
     /// Enables or disables the titlebar decoration
     titlebarEnabled:bool = true,
     background:bool = true,
-
-
 
     pub fn constructFlags(self:WindowParams) ig.ImGuiWindowFlags {
         var flags = ig.ImGuiWindowFlags_None;
@@ -127,9 +130,6 @@ pub fn input(label: []const u8, ptr: anytype, params: InputParams) bool {
     // Early outs for specific types
     const fmax = std.math.f32_max;
     switch(T) {
-        []const u8 => {
-
-        },
         math.Vec2 => {
             var temp: [2]f32 = .{ ptr.*.x, ptr.*.y };
             var result = ig.igDragFloat2(label.ptr, &temp, params.step, -fmax, fmax, "%.2f", ig.ImGuiSliderFlags_NoRoundToFormat);
@@ -151,6 +151,19 @@ pub fn input(label: []const u8, ptr: anytype, params: InputParams) bool {
             var result = ig.igColorEdit4(label.ptr, &temp, ig.ImGuiColorEditFlags_Float);
             if (result) {
                 ptr.* = math.Vec4.new(temp[0], temp[1], temp[2], temp[3]);
+            }
+            return result;
+        },
+        math.Rect => {
+            var temp: [4]f32 = .{ ptr.*.position.x, ptr.*.position.y, ptr.*.size.x, ptr.*.size.y };
+            var result: bool = undefined;
+            if(params.preferDragInput) {
+                result = ig.igDragFloat4(label.ptr, &temp, params.step,-fmax,fmax,"%.2f",ig.ImGuiSliderFlags_NoRoundToFormat);
+            } else {
+                result = ig.igInputFloat4(label.ptr, &temp, "%.2f", params.toInputTextFlags());
+            }
+            if (result) {
+                ptr.* = math.Rect.new(temp[0], temp[1], temp[2], temp[3]);
             }
             return result;
         },
@@ -225,40 +238,44 @@ pub fn input(label: []const u8, ptr: anytype, params: InputParams) bool {
             @compileError(@typeName(T) ++ " cannot be edited automatically by `imgui.components.input`");
         },
         else => {
+            std.debug.print("Failed to find an imgui editor for {s}\n", .{@typeName(T)});
             return false;
         }
     }
 }
-/// Things you allocate with this do not need to be freed.
-pub fn format(comptime fmt: []const u8, params: anytype) []const u8 {
-    return std.fmt.allocPrint(mem.RingBuffer, fmt, params) catch unreachable;
-}
+
 /// Shows the imgui demo window
 pub fn demo() void {
     ig.igShowDemoWindow(null);
 }
+
+/// Things you allocate with this do not need to be freed.
+pub fn format(comptime fmt: []const u8, params: anytype) []const u8 {
+    return std.fmt.allocPrintZ(&internalBuf.allocator, fmt, params) catch unreachable;
+}
+
 /// Outputs an `igText` via zig formatting.
 pub fn text(comptime fmt: []const u8, params: anytype) void {
-    var igt = std.fmt.allocPrint(mem.RingBuffer, fmt, params) catch unreachable;
+    var igt = format(fmt, params);
     ig.igText(igt.ptr);
 }
 pub fn button(comptime fmt: []const u8, params: anytype) bool {
-    var igt = std.fmt.allocPrint(mem.RingBuffer, fmt, params) catch unreachable;
+    var igt = format(fmt, params);
     return ig.igButton(igt.ptr, .{});
 }
 /// Outputs an `igTextDisabled` via zig formatting.
 pub fn textDisabled(comptime fmt: []const u8, params: anytype) void {
-    var igt = std.fmt.allocPrint(mem.RingBuffer, fmt, params) catch unreachable;
+    var igt = format(fmt, params);
     ig.igTextDisabled(igt.ptr);
 }
 /// Outputs an `igTextWrapped` via zig formatting.
 pub fn textWrapped(comptime fmt: []const u8, params: anytype) void {
-    var igt = std.fmt.allocPrint(mem.RingBuffer, fmt, params) catch unreachable;
+    var igt = format(fmt, params);
     ig.igTextWrapped(igt.ptr);
 }
 /// Outputs an `igTextColored` via zig formatting.
 pub fn textColored(comptime fmt: []const u8, params: anytype, color:math.Vec4) void {
-    var igt = std.fmt.allocPrint(mem.RingBuffer, fmt, params) catch unreachable;
+    var igt = format(fmt, params);
     ig.igTextColored(color, igt.ptr);
 }
 pub fn beginWindow(name: []const u8, params: WindowParams) bool {

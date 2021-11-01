@@ -15,7 +15,7 @@ pub var exitRoom: []const u8 = "Exit";
 
 pub var roomMenuTag: []const u8 = "Room";
 /// Due to this being a room that is registered, changing this after init wont work.
-pub var roomMenuPlay: []const u8 = "Play current scene";
+pub var roomMenuPlay: []const u8 = "Playtest";
 
 pub var miscMenuTag: []const u8 = "Other";
 pub var miscMenuImGui: []const u8 = "ImGui Demo";
@@ -28,6 +28,10 @@ pub var windowTitleObjectEditor: []const u8 = "Object Edit##SLING_OBJECT_EDITOR_
 pub var windowTitleConsole: []const u8 = "Console##SLING_OBJECT_CONSOLE";
 pub var windowTitlePalette: []const u8 = "Palette##SLING_OBJECT_PALETTE";
 
+pub var logIconNormal: []const u8 = "#";
+pub var logIconWarn: []const u8 = "!";
+pub var logIconError: []const u8 = "!!!";
+
 pub fn iconify() void {
     fileMenuNew = icon.newFile ++ " New";
     fileMenuSave = icon.save ++ " Save";
@@ -36,10 +40,14 @@ pub fn iconify() void {
     fileMenuLeave = icon.stop ++ " Exit Scene";
     exitRoom = icon.circleLeft ++ " Exit";
     addNew = icon.boxPlus;
-    roomMenuPlay = icon.keyboard ++ " Play current scene";
+    roomMenuPlay = icon.keyboard ++ " Playtest";
 
     addNew = icon.boxPlus;
     duplicate = icon.clone;
     fileSelectorFile = icon.newFile ++ " ";
     fileSelectorFolder = icon.folderOpen ++ " ";
+
+    logIconNormal = icon.bell;
+    logIconWarn = icon.circledQuestionmark;
+    logIconError = icon.circledCross;
 }

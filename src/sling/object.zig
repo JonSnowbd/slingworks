@@ -13,7 +13,10 @@ pub const Clearance = enum {
     both,
 };
 
+/// Created by looking into an entity interface, or via its GenBuildData(T),
+/// this contains the information necessary to instance and deserialize into the various types.
 pub const Information = struct {
+
     var pointerToId = std.StringHashMap(usize).init(sling.mem.Allocator);
     var registeredObjects = std.ArrayList(*const Information).init(sling.mem.Allocator);
 
@@ -57,6 +60,8 @@ pub const Information = struct {
         return registeredObjects.items;
     }
 };
+/// The interface that needs to be implemented in order to be considered for use inside
+/// of a scene as either a parent or child data type.
 pub const Interface = struct {
     /// The sole source of allocation in an object group.
     arena: std.heap.ArenaAllocator = undefined,
@@ -91,6 +96,19 @@ pub const Interface = struct {
         getName: fn (*Interface) []const u8,
     };
 };
+
+/// Pass in an entity data type(not the interface container, the raw data type itself) and
+/// call register to get the 'build' data for the entities behaviour, such as ignored fields,
+/// hidden fields, and the information struct that lets you instanciate a collection/singleton
+/// instantly.
+///
+/// Dynamic Method Parameters: In the provided functions for init/update/editorExtension
+/// registration, you can be flexible with what parameters you have on them, and in what order.
+///
+/// Here are a few auto filled parameters your methods can have:
+/// `*T` - The entity object itself
+/// `usize` - The Index/ID of an object, for example the third object in a collection will receive `2`
+/// `*sling.Scene` - The scene in which the object is currently inside, use this for reaching out to other collections.
 pub fn GenBuildData(comptime T: type) type {
     return struct {
         pub const information = Information{
@@ -251,38 +269,67 @@ pub fn GenBuildData(comptime T: type) type {
             self._init.deinit();
             self._update.deinit();
         }
-
+        /// This hides the fields from the editor, but does not prevent it from being serialized.
+        /// Recommended for fields that will be controlled from your editor manually rather than
+        /// automatically handled by sling.
         pub fn hide(self: *@This(), comptime field: std.meta.FieldEnum(T)) void {
             self._hidden.put(@tagName(field), {}) catch |err| {
                 std.debug.panic("Failed to ignore field '{s}' from type '{s}' due to:\n{s}", .{ @tagName(field), @typeName(T), @errorName(err) });
             };
         }
+        /// Hides and ignores a field, it will not show up in the editor, and will not be saved/restored
+        /// by serialization in any scenario.
         pub fn ignore(self: *@This(), comptime field: std.meta.FieldEnum(T)) void {
             _ = self;
             sling.config.serializationConfig.ignore(T, @tagName(field));
         }
-        pub fn initMethod(self: *@This(), comptime method: DeclEnum(T), comptime clearance: Clearance) void {
+        /// Marks a declaration function as an initializer function, this is ran on scene start
+        /// for singletons, and on creation/deserialization for each object in a collection type.
+        /// Clearance controls when it can be ran, `.editorOnly` for in editor initialization,
+        /// `.gameOnly` for in game initialization, or `.both` for both.
+        pub fn initMethod(self: *@This(), comptime method: sling.util.DeclEnum(T), comptime clearance: Clearance) void {
             self._init.append(FnWrap.init(@tagName(method), clearance)) catch |err| {
                 std.debug.panic("Failed to add init system '{s}' to type '{s}' due to:\n{s}", .{ @tagName(method), @typeName(T), @errorName(err) });
             };
         }
-        pub fn deinitMethod(self: *@This(), comptime method: DeclEnum(T), comptime clearance: Clearance) void {
+        /// Marks a declaration function as an initializer function, this is ran on scene end
+        /// for singletons, and on on scene end and destruction for each object in a collection type.
+        /// Clearance controls when it can be ran, `.editorOnly` for in editor initialization,
+        /// `.gameOnly` for in game initialization, or `.both` for both.
+        pub fn deinitMethod(self: *@This(), comptime method: sling.util.DeclEnum(T), comptime clearance: Clearance) void {
             self._deinitFn.append(FnWrap.init(@tagName(method), clearance)) catch |err| {
                 std.debug.panic("Failed to add init system '{s}' to type '{s}' due to:\n{s}", .{ @tagName(method), @typeName(T), @errorName(err) });
             };
         }
-        pub fn nameMethod(self: *@This(), comptime method: DeclEnum(T)) void {
+        /// Marks a declaration function as a name retrieval method, required to be `fn(*T) []const u8`
+        /// and the resulting string is not required to live through the entire frame.
+        /// By providing this function names in the editor will be more ergonomic and you will
+        /// get full control over how they are presented to the editor.
+        ///
+        /// Note: This method is fixed and you cannot dynamically request more information via
+        /// the function's parameters like the other methods.
+        pub fn nameMethod(self: *@This(), comptime method: sling.util.DeclEnum(T)) void {
             self._getName = @field(T, @tagName(method));
         }
-        pub fn updateMethod(self: *@This(), comptime method: DeclEnum(T), comptime clearance: Clearance) void {
+        /// Marks a declaration function as an update function, this is ran on every frame update,
+        /// and can be used to modify the object or render via `sling.render`, or anything else if you're careful.
+        /// Clearance controls when it can be ran, `.editorOnly` for in editor initialization,
+        /// `.gameOnly` for in game initialization, or `.both` for both.
+        pub fn updateMethod(self: *@This(), comptime method: sling.util.DeclEnum(T), comptime clearance: Clearance) void {
             self._update.append(FnWrap.init(@tagName(method), clearance)) catch |err| {
                 std.debug.panic("Failed to add update system '{s}' to type '{s}' due to:\n{s}", .{ @tagName(method), @typeName(T), @errorName(err) });
             };
         }
+        /// Marking an entity as preferring singleton means that when it is considered
+        /// as a child entity in a scene, it will be a persistent single entry instead of
+        /// a collection of entity data.
         pub fn prefersSingleton(self: *@This()) void {
             self._prefersSingleton = true;
         }
-        pub fn editorExtension(self: *@This(), comptime method: DeclEnum(T)) void {
+        /// You can provide an extension method to allow you to place imgui components
+        /// in the 'selected entity' editor. Do not call imgui.beginWindow(ig.begin) in this,
+        /// instead just call imgui functions that do not begin new windows(child is okay though).
+        pub fn editorExtension(self: *@This(), comptime method: sling.util.DeclEnum(T)) void {
             self._editorExtension = FnWrap.init(@tagName(method), .editorOnly);
         }
         pub fn register() *@This() {
@@ -296,26 +343,6 @@ pub fn GenBuildData(comptime T: type) type {
             return &Instance.?;
         }
     };
-}
-fn DeclEnum(comptime T: type) type {
-    const declInfos = std.meta.declarations(T);
-    var declFields: [declInfos.len]std.builtin.TypeInfo.EnumField = undefined;
-    var decls = [_]std.builtin.TypeInfo.Declaration{};
-    inline for (declInfos) |field, i| {
-        declFields[i] = .{
-            .name = field.name,
-            .value = i,
-        };
-    }
-    return @Type(.{
-        .Enum = .{
-            .layout = .Auto,
-            .tag_type = std.math.IntFittingRange(0, declInfos.len - 1),
-            .fields = &declFields,
-            .decls = &decls,
-            .is_exhaustive = true,
-        },
-    });
 }
 fn ArgType(comptime Fn: std.builtin.TypeInfo) type {
     if (Fn != .Fn) {
@@ -343,6 +370,9 @@ fn ArgType(comptime Fn: std.builtin.TypeInfo) type {
         });
     };
 }
+
+/// Takes a data type and turns it into an interface container for a 'collection' type entity
+/// that represents an array of that data in the game world.
 pub fn CollectionType(comptime T: type) type {
     return struct {
         const Self = @This();
@@ -475,6 +505,8 @@ pub fn CollectionType(comptime T: type) type {
     };
 }
 
+/// Takes a data type and turns it into an interface container for a 'singleton' type entity
+/// that represents a single constantly active entity.
 pub fn SingletonType(comptime T: type) type {
     return struct {
         const Self = @This();

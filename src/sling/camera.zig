@@ -24,8 +24,8 @@ projectionMatrix: sling.math.Matrix = sling.math.Matrix.identity,
 /// be recalculated.
 dirty: bool = true,
 
-/// Unused for now, but eventually will be used to render your game into
-/// a separate rendertarget, or into an imgui window.
+/// Setting this overrides the projection matrix size, useful if you're rendering into something
+/// that isnt the default buffer. Applies after the next recalc (set dirty manually to true).
 sizeOverride: ?sling.math.Vec2 = null,
 /// Do not manipulate this directly, is for internal state. Prefer to use `ig.igGetIO().*.DisplaySize`
 currentSize: sling.math.Vec2 = .{},
@@ -41,8 +41,7 @@ inline fn getSize(self: Self) sling.math.Vec2 {
     if (self.sizeOverride) |override| {
         return override;
     }
-    var io = ig.igGetIO();
-    return io.*.DisplaySize;
+    return sling.math.Vec2.new(sling.package.sokol.app.widthf(), sling.package.sokol.app.heightf());
 }
 
 pub inline fn recalc(self: *Self) void {
@@ -64,7 +63,7 @@ pub inline fn recalc(self: *Self) void {
         if (self.viewMatrix.invert()) |inverted| {
             self.inverseViewMatrix = inverted;
         } else {
-            std.log.err("Camera failed to inverse view matrix:\n{any}", .{self.viewMatrix});
+            sling.logErrFmt("Camera failed to inverse view matrix:\n{any}", .{self.viewMatrix});
         }
         self.dirty = false;
     }
@@ -78,6 +77,14 @@ pub fn setPosition(self: *Self, target: sling.math.Vec2) void {
     self.dirty = true;
     self.position = target;
 }
+pub fn setOrigin(self: *Self, target: sling.math.Vec2) void {
+    if (target.x == self.origin.x and target.y == self.origin.y) {
+        return;
+    }
+
+    self.dirty = true;
+    self.origin = target;
+}
 pub fn setZoom(self: *Self, target: f32) void {
     if (target == self.zoom) {
         return;
@@ -89,7 +96,6 @@ pub fn setRotation(self: *Self, target: sling.math.Vec2) void {
     if (target.x == self.position.x and target.y == self.position.y) {
         return;
     }
-
     self.dirty = true;
     self.position = target;
 }

@@ -44,7 +44,6 @@ pub fn init() void {
     customPipeline.layout.attrs[1].format = .FLOAT2;
     customPipeline.layout.attrs[2].format = .FLOAT4;
     pipeline = sg.makePipeline(customPipeline);
-    std.debug.print("blep\n", .{});
 
     vertices = std.ArrayList(IgVertex).init(std.heap.c_allocator);
     indices = std.ArrayList(u16).init(std.heap.c_allocator);

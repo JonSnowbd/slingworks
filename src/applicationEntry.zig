@@ -40,17 +40,9 @@ export fn qs_init() void {
     sg.setup(.{
         .context = sgapp.context()
     });
+    sling.imgui.components.internalBuf = std.heap.FixedBufferAllocator.init(sling.mem.Allocator.alloc(u8, 1024*1024*4) catch unreachable);
     imguiImpl.init();
-
-    // After init, you're free to initialize your fonts.
-    // Hint: Use multiple adds with ranges specified to cover your bases
-    // for multiple language character sets, or icon fonts!
-    var fnt = reroute.imgui.config.startFontCreation();
-    _ = fnt.addDefaultFont();
-    fnt.build();
-
     last = stm.now();
-
     if(userInit) |ini| {
         ini();
     }
@@ -64,6 +56,8 @@ export fn qs_frame() void {
     imguiImpl.render();
     sg.endPass();
     sg.commit();
+
+    sling.imgui.components.internalBuf.reset();
 }
 
 export fn qs_cleanup() void {

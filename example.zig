@@ -1,14 +1,18 @@
 const std = @import("std");
 const sling = @import("sling");
 
-pub const SceneType = struct {
+pub const Arena = struct {
     bounds:sling.math.Rect = sling.math.Rect.new(-400,-400,800,800),
-    pub fn slingIntegration() void {
-        var config = sling.configure(SceneType);
-        config.updateMethod(.update, .both);
+    pub fn update(self:*Arena) void {
+        sling.render.rectangle(self.bounds, .{
+            .thickness=10.0,
+            .depth=sling.Depth.init(10),
+            .color=sling.math.Vec4.new(1.0,0.0,0.0,1.0),
+        });
     }
-    pub fn update(self:*SceneType) void {
-        sling.render.rectangle(self.bounds, .{.depth=sling.Depth.init(10),.color=sling.math.Vec4.new(1.0,1.0,0.0,0.2)});
+    pub fn slingIntegration() void {
+        var config = sling.configure(Arena);
+        config.updateMethod(.update, .both);
     }
 };
 pub const Puck = struct {
@@ -26,15 +30,15 @@ pub const Puck = struct {
         sling.render.sprite(tex, rect, .{.normalizedOrigin=.{.x=0.5,.y=0.5}});
     }
     fn moveAndCollide(self: *Puck, scene:*sling.Scene) void {
-        var bounds = scene.is(SceneType).?.bounds;
+        var bounds = scene.is(Arena).?.bounds;
         self.position = self.position.add(self.velocity.scale(sling.state.dt));
         if(self.position.x < bounds.left() or self.position.x > bounds.right()) {
             self.position.x = std.math.clamp(self.position.x, bounds.left()+1, bounds.right()-1);
-            self.velocity.x *= -0.9;
+            self.velocity.x *= -1;
         }
         if(self.position.y < bounds.top() or self.position.y > bounds.bottom()) {
             self.position.y = std.math.clamp(self.position.y, bounds.top()+1, bounds.bottom()-1);
-            self.velocity.y *= -0.9;
+            self.velocity.y *= -1;
         }
     }
     pub fn slingIntegration() void {
@@ -45,13 +49,14 @@ pub const Puck = struct {
 };
 
 pub fn main() void {
-    sling.integrate(SceneType);
+    sling.integrate(Arena);
     sling.integrate(Puck);
-    sling.configureAsScene(SceneType, .{Puck});
+    sling.configureScene(Arena, .{Puck});
     sling.configureInit(init);
-    sling.run(.{});
+    sling.run(.{
+        .fontBytes = @embedFile("opensans.ttf"),
+    });
 }
-
 
 fn init() void {
     sling.imgui.config.styleColorOrangeSlate();

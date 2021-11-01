@@ -19,6 +19,7 @@ pub fn update() void {
     if (ig.igBeginMainMenuBar()) {
         if (sling.state.room) |_| {
             if (ig.igBeginMenu(dict.exitRoom.ptr, true)) {
+                sling.state.leaveRoom();
                 ig.igEndMenu();
             }
         }
@@ -56,7 +57,7 @@ fn fileMenu() void {
     ig.igSeparator();
     // Current scene items
     var enabled = sling.state.scene != null and sling.state.scene.?.editorData.filePath != null;
-    if (ig.igMenuItem_Bool(dict.fileMenuSave.ptr, "CTRL+S", false, enabled) or saveShortcut) {
+    if (ig.igMenuItem_Bool(dict.fileMenuSave.ptr, "CTRL+S", false, enabled) or (enabled and saveShortcut)) {
         var path = sling.state.scene.?.editorData.filePath.?;
         var data = sling.state.scene.?.toBytes(sling.mem.Allocator);
         defer sling.mem.Allocator.free(data);

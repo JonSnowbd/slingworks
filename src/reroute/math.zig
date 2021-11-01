@@ -1,4 +1,10 @@
 const std = @import("std");
+
+/// Formula is `degrees = radians * sling.math.RAD_2_DEG`
+pub const RAD_2_DEG = 57.2958;
+/// Formula is `radians = degrees * sling.math.DEG_2_RAD`
+pub const DEG_2_RAD = 0.0174533;
+
 fn Int(comptime signedness: std.builtin.Signedness, comptime bit_count: u16) type {
     return @Type(std.builtin.TypeInfo{
         .Int = .{
@@ -54,6 +60,39 @@ inline fn convertTo(comptime T: type, value: anytype) T {
 
 fn Fns(comptime Self: type, comptime Real: type, comptime axes: usize) type {
     return struct {
+        /// Does not mutate `this`, returns a copy of `this` with the sum of it equalling 1.
+        pub fn normalize(this: Self) Self {
+            var len = this.length();
+            if (len != 0.0) {
+                return this.scale(1.0 / len);
+            }
+            else {
+                var empty: Self = undefined;
+                inline for (@typeInfo(Self).Struct.fields) |fld| {
+                    @field(empty, fld.name) = 0;
+                }
+                return empty;
+            }
+        }
+        /// Does not mutate `this` or `other`, returns the dot product of the two vectors.
+        /// Returns the sum of products of all components.
+        pub fn dot(this: Self, other: Self) Real {
+            var result: Real = 0;
+            inline for (@typeInfo(Self).Struct.fields) |fld| {
+                result += @field(this, fld.name) * @field(other, fld.name);
+            }
+            return result;
+        }
+
+        /// returns the magnitude of the vector.
+        pub fn length(this: Self) Real {
+            return std.math.sqrt(this.length2());
+        }
+
+        /// returns the squared magnitude of the vector.
+        pub fn length2(this: Self) Real {
+            return Self.dot(this, this);
+        }
         /// Does not mutate `this`, returns a copy of `this` with each of `other`'s fields
         /// added.
         pub fn add(this: Self, other: Self) Self {
@@ -90,6 +129,15 @@ fn Fns(comptime Self: type, comptime Real: type, comptime axes: usize) type {
             var result: Self = undefined;
             inline for(@typeInfo(Self).Struct.fields) |field| {
                 @field(result, field.name) = @field(this, field.name) * scalar;
+            }
+            return result;
+        }
+        /// Does not mutate `this`, returns a copy of `this` with each of `other`'s fields
+        /// subtracted.
+        pub fn round(this: Self) Self {
+            var result: Self = undefined;
+            inline for(@typeInfo(Self).Struct.fields) |field| {
+                @field(result, field.name) = std.math.round(@field(this, field.name));
             }
             return result;
         }
