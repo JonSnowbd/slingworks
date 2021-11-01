@@ -16,17 +16,17 @@ pub const Clearance = enum {
 /// Created by looking into an entity interface, or via its GenBuildData(T),
 /// this contains the information necessary to instance and deserialize into the various types.
 pub const Information = struct {
-
     var pointerToId = std.StringHashMap(usize).init(sling.mem.Allocator);
     var registeredObjects = std.ArrayList(*const Information).init(sling.mem.Allocator);
 
     name: []const u8,
-    autoCreate: fn(*sling.Scene) *Interface,
-    autoCreateFrom: fn(*sling.serializer.Node,*sling.Scene) *Interface,
+    autoCreate: fn (*sling.Scene) *Interface,
+    autoCreateFrom: fn (*sling.serializer.Node, *sling.Scene) *Interface,
     create: fn (*sling.Scene) *Interface,
     createSingleton: fn (*sling.Scene) *Interface,
     createFrom: fn (*sling.serializer.Node, *sling.Scene) *Interface,
     createSingletonFrom: fn (*sling.serializer.Node, *sling.Scene) *Interface,
+    isShadow: fn () bool,
 
     pub fn register(info: *const Information) void {
         var id = registeredObjects.items.len;
@@ -119,6 +119,7 @@ pub fn GenBuildData(comptime T: type) type {
             .createSingleton = SingletonType(T).objInformation_create,
             .createFrom = CollectionType(T).objInformation_createFrom,
             .createSingletonFrom = SingletonType(T).objInformation_createFrom,
+            .isShadow = @This().isShadow,
         };
         pub var Instance: ?@This() = null;
 
@@ -233,8 +234,15 @@ pub fn GenBuildData(comptime T: type) type {
         _update: std.ArrayList(FnWrap),
         _getName: ?fn (*T) []const u8,
         _prefersSingleton: bool,
+        _prefersShadow: bool,
         _editorExtension: ?FnWrap,
 
+        fn isShadow() bool {
+            if (Instance) |inst| {
+                return inst._prefersShadow;
+            }
+            return false;
+        }
         fn initBuildData(allocator: *std.mem.Allocator) @This() {
             return .{
                 .allocator = allocator,
@@ -244,20 +252,21 @@ pub fn GenBuildData(comptime T: type) type {
                 ._update = std.ArrayList(FnWrap).init(allocator),
                 ._getName = null,
                 ._prefersSingleton = false,
+                ._prefersShadow = false,
                 ._editorExtension = null,
             };
         }
-        fn GenAutoCreate(scene:*sling.Scene) *Interface {
+        fn GenAutoCreate(scene: *sling.Scene) *Interface {
             var build = register();
-            if(build._prefersSingleton) {
+            if (build._prefersSingleton) {
                 return information.createSingleton(scene);
             } else {
                 return information.create(scene);
             }
         }
-        fn GenAutoCreateFrom(node: *sling.serializer.Node, scene:*sling.Scene) *Interface {
+        fn GenAutoCreateFrom(node: *sling.serializer.Node, scene: *sling.Scene) *Interface {
             var build = register();
-            if(build._prefersSingleton) {
+            if (build._prefersSingleton) {
                 return information.createSingletonFrom(node, scene);
             } else {
                 return information.createFrom(node, scene);
@@ -325,6 +334,12 @@ pub fn GenBuildData(comptime T: type) type {
         /// a collection of entity data.
         pub fn prefersSingleton(self: *@This()) void {
             self._prefersSingleton = true;
+        }
+        /// Being a shadow type means that if this is a child object, it is completely hidden
+        /// from the editor and not serialized. This is useful for things you only want to spawn
+        /// via code on the scene, typically shortlived objects like projectiles.
+        pub fn prefersShadow(self: *@This()) void {
+            self._prefersShadow = true;
         }
         /// You can provide an extension method to allow you to place imgui components
         /// in the 'selected entity' editor. Do not call imgui.beginWindow(ig.begin) in this,

@@ -27,7 +27,8 @@ fn controls() void {
     const Key = sling.input.Key;
     var io = ig.igGetIO();
     if (sling.input.mwheel != 0) {
-        var newZoom = std.math.clamp(sling.render.camera.zoom + sling.input.mwheel, 1, 12);
+        const amount: f32 = if (sling.input.mwheel > 0) 1 else -1;
+        var newZoom = std.math.clamp(sling.render.camera.zoom + amount, 1, 12);
         sling.render.camera.setZoom(newZoom);
     }
     if (Key.mmb.down()) {
@@ -56,9 +57,11 @@ fn objectEditor(scene: *sling.Scene) void {
     if (ig.igBegin(dict.windowTitlePalette.ptr, null, ig.ImGuiWindowFlags_None)) {
         ig.igPushStyleVar_Vec2(ig.ImGuiStyleVar_FramePadding, .{});
         for (scene.childObjects) |interface, i| {
+            if (interface.information.isShadow()) {
+                continue;
+            }
             ig.igPushID_Int(@intCast(c_int, i));
             defer ig.igPopID();
-
             switch (interface.data) {
                 .Singleton => {
                     if (ig.igSelectable_Bool(interface.information.name.ptr, i == scene.editorData.selectedObjectGroup, ig.ImGuiSelectableFlags_SpanAvailWidth, .{})) {

@@ -1,5 +1,5 @@
 const sg = @import("../sokol/sokol.zig").gfx;
-const sapp  = @import("../sokol/sokol.zig").app;
+const sapp = @import("../sokol/sokol.zig").app;
 const reroute = @import("main.zig");
 const std = @import("std");
 
@@ -29,25 +29,21 @@ pub fn Generate(comptime Vertex: type, MaxQuads: usize) type {
             // SHADER:
             sg.pushDebugGroup("Pipeline Initialization");
             comptime var prog: []const u8 = "";
-            inline for(programName) |ascii| {
+            inline for (programName) |ascii| {
                 prog = prog ++ &[_]u8{std.ascii.toLower(ascii)};
             }
-            const shaderDesc = @field(shader, prog++"ShaderDesc")(sg.queryBackend());
+            const shaderDesc = @field(shader, prog ++ "ShaderDesc")(sg.queryBackend());
 
             // PIPELINE:
-            var pipelineDesc: sg.PipelineDesc =.{
-                .depth = .{
-                    .write_enabled = false,
-                    .compare = .LESS_EQUAL,
-                },
-                .index_type = .UINT32,
-                .cull_mode = .DEFAULT
-            };
+            var pipelineDesc: sg.PipelineDesc = .{ .depth = .{
+                .write_enabled = false,
+                .compare = .LESS_EQUAL,
+            }, .index_type = .UINT32, .cull_mode = .DEFAULT };
             pipelineDesc.shader = sg.makeShader(shaderDesc);
             // pipelineDesc.color_count = 1;
             pipelineDesc.colors[0].write_mask = sg.ColorMask.RGBA;
-            inline for(std.meta.fields(Vertex)) |field,i| {
-                switch(field.field_type) {
+            inline for (std.meta.fields(Vertex)) |field, i| {
+                switch (field.field_type) {
                     f32 => {
                         pipelineDesc.layout.attrs[i].format = .FLOAT;
                     },
@@ -60,21 +56,23 @@ pub fn Generate(comptime Vertex: type, MaxQuads: usize) type {
                     reroute.math.Vec4 => {
                         pipelineDesc.layout.attrs[i].format = .FLOAT4;
                     },
-                    else => {@compileError("Cant have a "++@typeName(field.field_type)++" in this buffer.");}
+                    else => {
+                        @compileError("Cant have a " ++ @typeName(field.field_type) ++ " in this buffer.");
+                    },
                 }
             }
 
             // BINDINGS:
             var bindings = sg.Bindings{};
             bindings.vertex_buffers[0] = sg.makeBuffer(.{
-                .type=.VERTEXBUFFER,
-                .usage=.STREAM,
-                .size=@sizeOf(Vertex)*MaxVertCount,
+                .type = .VERTEXBUFFER,
+                .usage = .STREAM,
+                .size = @sizeOf(Vertex) * MaxVertCount,
             });
             bindings.index_buffer = sg.makeBuffer(.{
-                .type=.INDEXBUFFER,
-                .usage=.STREAM,
-                .size=@sizeOf(u32)*MaxIndCount,
+                .type = .INDEXBUFFER,
+                .usage = .STREAM,
+                .size = @sizeOf(u32) * MaxIndCount,
             });
             var self: Self = .{
                 .allocator = allocator,
@@ -92,7 +90,7 @@ pub fn Generate(comptime Vertex: type, MaxQuads: usize) type {
         }
 
         pub fn add(self: *Self, quad: [4]Vertex, texture: u32) !void {
-            if(self.vertices.len+4 >= MaxVertCount or self.indices.len+6 >= MaxIndCount) {
+            if (self.vertices.len + 4 >= MaxVertCount or self.indices.len + 6 >= MaxIndCount) {
                 return error.Full;
             }
             const vind: usize = self.vertices.len;
@@ -100,44 +98,44 @@ pub fn Generate(comptime Vertex: type, MaxQuads: usize) type {
             self.vertices.len += 4;
             self.indices.len += 6;
 
-            self.vertices[vind+0] = quad[0];
-            self.vertices[vind+1] = quad[1];
-            self.vertices[vind+2] = quad[2];
-            self.vertices[vind+3] = quad[3];
+            self.vertices[vind + 0] = quad[0];
+            self.vertices[vind + 1] = quad[1];
+            self.vertices[vind + 2] = quad[2];
+            self.vertices[vind + 3] = quad[3];
 
-            self.indices[iind+0] = @intCast(u32,vind+0);
-            self.indices[iind+1] = @intCast(u32,vind+1);
-            self.indices[iind+2] = @intCast(u32,vind+3);
-            self.indices[iind+3] = @intCast(u32,vind+1);
-            self.indices[iind+4] = @intCast(u32,vind+2);
-            self.indices[iind+5] = @intCast(u32,vind+3);
+            self.indices[iind + 0] = @intCast(u32, vind + 0);
+            self.indices[iind + 1] = @intCast(u32, vind + 1);
+            self.indices[iind + 2] = @intCast(u32, vind + 3);
+            self.indices[iind + 3] = @intCast(u32, vind + 1);
+            self.indices[iind + 4] = @intCast(u32, vind + 2);
+            self.indices[iind + 5] = @intCast(u32, vind + 3);
             self.textures[self.quadCount] = texture;
             self.quadCount += 1;
         }
-        pub fn flush(self:*Self, vsParams: ?sg.Range, fsParams: ?sg.Range) void {
+        pub fn flush(self: *Self, vsParams: ?sg.Range, fsParams: ?sg.Range) void {
             self.drawCalls = 0;
-            if(self.vertices.len == 0 or self.indices.len == 0) {
+            if (self.vertices.len == 0 or self.indices.len == 0) {
                 return;
             }
             sg.updateBuffer(self.bindings.vertex_buffers[0], sg.asRange(self.vertices));
             sg.updateBuffer(self.bindings.index_buffer, sg.asRange(self.indices));
             sg.applyPipeline(self.pipeline);
-            if(vsParams) |vs| {
+            if (vsParams) |vs| {
                 sg.applyUniforms(.VS, 0, vs);
             }
-            if(fsParams) |fs| {
+            if (fsParams) |fs| {
                 sg.applyUniforms(.FS, 0, fs);
             }
             var previousTex = self.textures[0];
 
             var i: usize = 0;
             var starting: usize = 0;
-            while(i < self.quadCount) : (i+=1) {
+            while (i < self.quadCount) : (i += 1) {
                 var tex = self.textures[i];
-                if(tex != previousTex) {
-                    var from = @intCast(u32,starting*6);
-                    var amount = @intCast(u32,(i-starting)*6);
-                    self.bindings.fs_images[0] = sg.Image{.id=previousTex};
+                if (tex != previousTex) {
+                    var from = @intCast(u32, starting * 6);
+                    var amount = @intCast(u32, (i - starting) * 6);
+                    self.bindings.fs_images[0] = sg.Image{ .id = previousTex };
                     sg.applyBindings(self.bindings);
                     sg.draw(from, amount, 1);
                     starting = i;
@@ -146,10 +144,10 @@ pub fn Generate(comptime Vertex: type, MaxQuads: usize) type {
                 previousTex = tex;
             }
 
-            if(i != starting) {
-                var from = @intCast(u32,starting*6);
-                var amount = @intCast(u32,(i-starting)*6);
-                self.bindings.fs_images[0] = sg.Image{.id=previousTex};
+            if (i != starting) {
+                var from = @intCast(u32, starting * 6);
+                var amount = @intCast(u32, (i - starting) * 6);
+                self.bindings.fs_images[0] = sg.Image{ .id = previousTex };
                 sg.applyBindings(self.bindings);
                 sg.draw(from, amount, 1);
                 self.drawCalls += 1;

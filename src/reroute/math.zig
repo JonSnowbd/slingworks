@@ -27,34 +27,34 @@ inline fn divide(comptime Real: type, lhs: anytype, rhs: anytype) Real {
     return std.math.divFloor(Real, leftOperand, rightOperand) catch return 0;
 }
 inline fn convertTo(comptime T: type, value: anytype) T {
-    if(@TypeOf(value) == T) {
+    if (@TypeOf(value) == T) {
         return value;
     }
-    switch(@typeInfo(@TypeOf(value))) {
+    switch (@typeInfo(@TypeOf(value))) {
         .Float => {
-            switch(@typeInfo(@TypeOf(T))) {
+            switch (@typeInfo(@TypeOf(T))) {
                 .Int => |destInt| {
                     const conv = std.math.round(value);
-                    return @floatToInt(Int(destInt.signedness,destInt.bits), conv);
+                    return @floatToInt(Int(destInt.signedness, destInt.bits), conv);
                 },
                 .Float => |destFloat| {
                     return @floatCast(Float(destFloat.bits), value);
                 },
-                else => @compileError("Conversion can only happen with floats and ints")
+                else => @compileError("Conversion can only happen with floats and ints"),
             }
         },
         .Int => {
-            switch(@typeInfo(@TypeOf(T))) {
+            switch (@typeInfo(@TypeOf(T))) {
                 .Int => |destInt| {
-                    return @intCast(Int(destInt.signedness,destInt.bits), value);
+                    return @intCast(Int(destInt.signedness, destInt.bits), value);
                 },
                 .Float => |destFloat| {
                     return @intToFloat(Float(destFloat.bits), value);
                 },
-                else => @compileError("Conversion can only happen with floats and ints")
+                else => @compileError("Conversion can only happen with floats and ints"),
             }
         },
-        else => @compileError("Conversion can only happen with floats and ints")
+        else => @compileError("Conversion can only happen with floats and ints"),
     }
 }
 
@@ -65,8 +65,7 @@ fn Fns(comptime Self: type, comptime Real: type, comptime axes: usize) type {
             var len = this.length();
             if (len != 0.0) {
                 return this.scale(1.0 / len);
-            }
-            else {
+            } else {
                 var empty: Self = undefined;
                 inline for (@typeInfo(Self).Struct.fields) |fld| {
                     @field(empty, fld.name) = 0;
@@ -97,14 +96,14 @@ fn Fns(comptime Self: type, comptime Real: type, comptime axes: usize) type {
         /// added.
         pub fn add(this: Self, other: Self) Self {
             var result: Self = undefined;
-            inline for(@typeInfo(Self).Struct.fields) |field| {
+            inline for (@typeInfo(Self).Struct.fields) |field| {
                 @field(result, field.name) = @field(this, field.name) + @field(other, field.name);
             }
             return result;
         }
         /// Mutates `this`, adding all the fields from `other` into `this`.
         pub fn addMut(this: *Self, other: Self) void {
-            inline for(@typeInfo(Self).Struct.fields) |field| {
+            inline for (@typeInfo(Self).Struct.fields) |field| {
                 @field(this, field.name) += @field(other, field.name);
             }
         }
@@ -112,14 +111,14 @@ fn Fns(comptime Self: type, comptime Real: type, comptime axes: usize) type {
         /// subtracted.
         pub fn sub(this: Self, other: Self) Self {
             var result: Self = undefined;
-            inline for(@typeInfo(Self).Struct.fields) |field| {
+            inline for (@typeInfo(Self).Struct.fields) |field| {
                 @field(result, field.name) = @field(this, field.name) - @field(other, field.name);
             }
             return result;
         }
         /// Mutates `this`, subtracting all the fields from `other` from `this`.
         pub fn subMut(this: *Self, other: Self) void {
-            inline for(@typeInfo(Self).Struct.fields) |field| {
+            inline for (@typeInfo(Self).Struct.fields) |field| {
                 @field(this, field.name) -= @field(other, field.name);
             }
         }
@@ -127,7 +126,7 @@ fn Fns(comptime Self: type, comptime Real: type, comptime axes: usize) type {
         /// subtracted.
         pub fn scale(this: Self, scalar: Real) Self {
             var result: Self = undefined;
-            inline for(@typeInfo(Self).Struct.fields) |field| {
+            inline for (@typeInfo(Self).Struct.fields) |field| {
                 @field(result, field.name) = @field(this, field.name) * scalar;
             }
             return result;
@@ -136,14 +135,14 @@ fn Fns(comptime Self: type, comptime Real: type, comptime axes: usize) type {
         /// subtracted.
         pub fn round(this: Self) Self {
             var result: Self = undefined;
-            inline for(@typeInfo(Self).Struct.fields) |field| {
+            inline for (@typeInfo(Self).Struct.fields) |field| {
                 @field(result, field.name) = std.math.round(@field(this, field.name));
             }
             return result;
         }
         /// Mutates `this`, subtracting all the fields from `other` from `this`.
         pub fn scaleMut(this: *Self, scalar: Real) void {
-            inline for(@typeInfo(Self).Struct.fields) |field| {
+            inline for (@typeInfo(Self).Struct.fields) |field| {
                 @field(this, field.name) = @field(this, field.name) * scalar;
             }
         }
@@ -151,22 +150,30 @@ fn Fns(comptime Self: type, comptime Real: type, comptime axes: usize) type {
         /// subtracted.
         pub fn scaleDiv(this: Self, scalar: Real) Self {
             var result: Self = undefined;
-            inline for(@typeInfo(Self).Struct.fields) |field| {
-                @field(result, field.name) = std.math.divFloor(Real, @field(this, field.name), scalar) catch 0;
+            inline for (@typeInfo(Self).Struct.fields) |field| {
+                if (@typeInfo(Real) == .Int) {
+                    @field(result, field.name) = std.math.divFloor(Real, @field(this, field.name), scalar) catch 0;
+                } else {
+                    if (@field(result, field.name) == 0 or scalar == 0) {
+                        @field(result, field.name) = 0;
+                    } else {
+                        @field(result, field.name) = @field(this, field.name) / scalar;
+                    }
+                }
             }
             return result;
         }
         /// Mutates `this`, subtracting all the fields from `other` from `this`.
         pub fn scaleDivMut(this: *Self, scalar: Real) void {
-            inline for(@typeInfo(Self).Struct.fields) |field| {
+            inline for (@typeInfo(Self).Struct.fields) |field| {
                 @field(this, field.name) = std.math.divFloor(Real, @field(this, field.name), scalar) catch 0;
             }
         }
         /// Converts this vector into a new vector type, for example from f32 to i32 or f64.
-        pub fn convert(this:Self, comptime NewReal: type) GenerateVectorType(NewReal, axes) {
+        pub fn convert(this: Self, comptime NewReal: type) GenerateVectorType(NewReal, axes) {
             const NewVector = GenerateVectorType(NewReal, axes);
             var result: NewVector = undefined;
-            inline for(@typeInfo(Self).Struct.fields) |field| {
+            inline for (@typeInfo(Self).Struct.fields) |field| {
                 @field(result, field.name) = convertTo(NewReal, @field(this, field.name));
             }
             return result;
@@ -175,23 +182,29 @@ fn Fns(comptime Self: type, comptime Real: type, comptime axes: usize) type {
 }
 
 pub fn GenerateVectorType(comptime Real: type, comptime axes: usize) type {
-    switch(axes) {
+    switch (axes) {
         1 => return extern struct {
             value: Real = 0,
-            pub fn new(val:Real) @This() {return .{.value=val};}
+            pub fn new(val: Real) @This() {
+                return .{ .value = val };
+            }
             pub usingnamespace Fns(@This(), Real, axes);
         },
         2 => return extern struct {
             x: Real = 0,
             y: Real = 0,
-            pub fn new(x:Real,y:Real) @This() {return .{.x=x,.y=y};}
+            pub fn new(x: Real, y: Real) @This() {
+                return .{ .x = x, .y = y };
+            }
             pub usingnamespace Fns(@This(), Real, axes);
         },
         3 => return extern struct {
             x: Real = 0,
             y: Real = 0,
             z: Real = 0,
-            pub fn new(x:Real,y:Real,z:Real) @This() {return .{.x=x,.y=y,.z=z};}
+            pub fn new(x: Real, y: Real, z: Real) @This() {
+                return .{ .x = x, .y = y, .z = z };
+            }
             pub usingnamespace Fns(@This(), Real, axes);
         },
         4 => return extern struct {
@@ -199,17 +212,14 @@ pub fn GenerateVectorType(comptime Real: type, comptime axes: usize) type {
             y: Real = 0,
             z: Real = 0,
             w: Real = 0,
-            pub fn new(x:Real,y:Real,z:Real,w:Real) @This() {return .{.x=x,.y=y,.z=z,.w=w};}
+            pub fn new(x: Real, y: Real, z: Real, w: Real) @This() {
+                return .{ .x = x, .y = y, .z = z, .w = w };
+            }
             /// val = 0 means unchanged, val = 1 means full white, val = -1 means full black
             /// Values are clamped between 0 and 1 to maintain valid normalized color, and alpha is unchanged.
-            pub fn brighten(self:@This(),val:f32) @This() {
-                return .{
-                    .x=std.math.clamp(self.x * (1.0+val),0.0,1.0),
-                    .y=std.math.clamp(self.y * (1.0+val),0.0,1.0),
-                    .z=std.math.clamp(self.z * (1.0+val),0.0,1.0),
-                    .w=self.w
-                };
-            } 
+            pub fn brighten(self: @This(), val: f32) @This() {
+                return .{ .x = std.math.clamp(self.x * (1.0 + val), 0.0, 1.0), .y = std.math.clamp(self.y * (1.0 + val), 0.0, 1.0), .z = std.math.clamp(self.z * (1.0 + val), 0.0, 1.0), .w = self.w };
+            }
             pub usingnamespace Fns(@This(), Real, axes);
         },
         5 => return extern struct {
@@ -218,19 +228,17 @@ pub fn GenerateVectorType(comptime Real: type, comptime axes: usize) type {
             z: Real = 0,
             w: Real = 0,
             r: Real = 0,
-            pub fn new(x:Real,y:Real,z:Real,w:Real,r:Real) @This() {return .{.x=x,.y=y,.z=z,.w=w,.r=r};}
+            pub fn new(x: Real, y: Real, z: Real, w: Real, r: Real) @This() {
+                return .{ .x = x, .y = y, .z = z, .w = w, .r = r };
+            }
             pub usingnamespace Fns(@This(), Real, axes);
         },
-        else => @compileError(@compileLog("Cannot have a vector with {any} axes.", .{axes}))
+        else => @compileError(@compileLog("Cannot have a vector with {any} axes.", .{axes})),
     }
 }
 
-pub const IntegerSettings = struct {
-
-};
-pub const FloatSettings = struct {
-
-};
+pub const IntegerSettings = struct {};
+pub const FloatSettings = struct {};
 pub const Scalar = GenerateVectorType(f32, 1);
 pub const Vec2 = GenerateVectorType(f32, 2);
 pub const Vec3 = GenerateVectorType(f32, 3);
@@ -623,7 +631,6 @@ pub const Rect = extern struct {
     }
 };
 
-
 // TODO:
 // Pass in a formula and the numbered members inside of it, and have code generated
 // automatically to perform it.
@@ -639,17 +646,17 @@ pub const Rect = extern struct {
 // You may prefix vector literals and values with ~ to normalize them.
 // Supported operators: `() * / + - ~`
 // Supported types: Any type generated by `GenerateVectorTypes`, Any mathematical(non-matrix)
-// type from this library, Any number literal from zig, Any number type from 
+// type from this library, Any number literal from zig, Any number type from
 // fn calculate(comptime Target: type, comptime formula: []const u8, members: anytype) Target {
 //     _ = formula;
 //     _ = members;
 //     var result: Target = .{};
 //     return result;
-// } 
+// }
 
 test "Basic Addition" {
     const testing = @import("std").testing;
-    const point: Vec2 = Vec2{.x=10,.y=10};
+    const point: Vec2 = Vec2{ .x = 10, .y = 10 };
 
     try testing.expect(point.x == 10);
 }

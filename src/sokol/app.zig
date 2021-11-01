@@ -200,24 +200,24 @@ pub const Range = extern struct {
 pub const ImageDesc = extern struct {
     width: i32 = 0,
     height: i32 = 0,
-    pixels: Range = .{ },
+    pixels: Range = .{},
 };
 pub const IconDesc = extern struct {
     sokol_default: bool = false,
     images: [8]ImageDesc = [_]ImageDesc{.{}} ** 8,
 };
 pub const Desc = extern struct {
-    init_cb: ?fn() callconv(.C) void = null,
-    frame_cb: ?fn() callconv(.C) void = null,
-    cleanup_cb: ?fn() callconv(.C) void = null,
-    event_cb: ?fn([*c]const Event) callconv(.C) void = null,
-    fail_cb: ?fn([*c]const u8) callconv(.C) void = null,
+    init_cb: ?fn () callconv(.C) void = null,
+    frame_cb: ?fn () callconv(.C) void = null,
+    cleanup_cb: ?fn () callconv(.C) void = null,
+    event_cb: ?fn ([*c]const Event) callconv(.C) void = null,
+    fail_cb: ?fn ([*c]const u8) callconv(.C) void = null,
     user_data: ?*c_void = null,
-    init_userdata_cb: ?fn(?*c_void) callconv(.C) void = null,
-    frame_userdata_cb: ?fn(?*c_void) callconv(.C) void = null,
-    cleanup_userdata_cb: ?fn(?*c_void) callconv(.C) void = null,
-    event_userdata_cb: ?fn([*c]const Event, ?*c_void) callconv(.C) void = null,
-    fail_userdata_cb: ?fn([*c]const u8, ?*c_void) callconv(.C) void = null,
+    init_userdata_cb: ?fn (?*c_void) callconv(.C) void = null,
+    frame_userdata_cb: ?fn (?*c_void) callconv(.C) void = null,
+    cleanup_userdata_cb: ?fn (?*c_void) callconv(.C) void = null,
+    event_userdata_cb: ?fn ([*c]const Event, ?*c_void) callconv(.C) void = null,
+    fail_userdata_cb: ?fn ([*c]const u8, ?*c_void) callconv(.C) void = null,
     width: i32 = 0,
     height: i32 = 0,
     sample_count: i32 = 0,
@@ -232,7 +232,7 @@ pub const Desc = extern struct {
     enable_dragndrop: bool = false,
     max_dropped_files: i32 = 0,
     max_dropped_file_path_length: i32 = 0,
-    icon: IconDesc = .{ },
+    icon: IconDesc = .{},
     gl_force_gles2: bool = false,
     win32_console_utf8: bool = false,
     win32_console_create: bool = false,
@@ -260,7 +260,7 @@ pub const Html5FetchResponse = extern struct {
 };
 pub const Html5FetchRequest = extern struct {
     dropped_file_index: i32 = 0,
-    callback: ?fn([*c]const Html5FetchResponse) callconv(.C) void = null,
+    callback: ?fn ([*c]const Html5FetchResponse) callconv(.C) void = null,
     buffer_ptr: ?*c_void = null,
     buffer_size: u32 = 0,
     user_data: ?*c_void = null,
@@ -367,7 +367,7 @@ pub fn frameCount() u64 {
 }
 pub extern fn sapp_set_clipboard_string([*c]const u8) void;
 pub fn setClipboardString(str: [:0]const u8) void {
-    sapp_set_clipboard_string(@ptrCast([*c]const u8,str));
+    sapp_set_clipboard_string(@ptrCast([*c]const u8, str));
 }
 pub extern fn sapp_get_clipboard_string() [*c]const u8;
 pub fn getClipboardString() [:0]const u8 {
@@ -375,7 +375,7 @@ pub fn getClipboardString() [:0]const u8 {
 }
 pub extern fn sapp_set_window_title([*c]const u8) void;
 pub fn setWindowTitle(str: [:0]const u8) void {
-    sapp_set_window_title(@ptrCast([*c]const u8,str));
+    sapp_set_window_title(@ptrCast([*c]const u8, str));
 }
 pub extern fn sapp_set_icon([*c]const IconDesc) void;
 pub fn setIcon(icon_desc: IconDesc) void {

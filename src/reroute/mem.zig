@@ -34,7 +34,7 @@ pub fn RingBufferGenerate(comptime size: usize) type {
     };
 }
 
-const internal = RingBufferGenerate(1024*1024*3);
+const internal = RingBufferGenerate(1024 * 1024 * 3);
 /// Preferred allocator to use if you need to allocate yourself.
 pub const Allocator = std.heap.c_allocator;
 /// You can use this to allocate temp memory that you never have to free.

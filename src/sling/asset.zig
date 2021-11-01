@@ -69,7 +69,7 @@ pub fn manualUpload(comptime T: type, object: T) usize {
     wrapper.data.append(object) catch |err| {
         std.debug.panic("Unknown error when fetching from asset lookup hashmap:\n{s}", .{@errorName(err)});
     };
-    sling.logFmt("Asset type \"{s}\" manually uploaded\n", .{ @typeName(T) });
+    sling.logFmt("Asset type \"{s}\" manually uploaded\n", .{@typeName(T)});
     return id;
 }
 
@@ -82,15 +82,15 @@ fn load(comptime T: type, path: []const u8) T {
             var raw = stbi_load(@ptrCast([*c]const u8, path), &w, &h, &c, 4);
             defer stbi_image_free(raw);
             var desc = sg.ImageDesc{
-                .width=w,
-                .height=h,
-                .pixel_format=sg.PixelFormat.RGBA8,
-                .min_filter=sg.Filter.LINEAR,
-                .mag_filter=sg.Filter.LINEAR,
+                .width = w,
+                .height = h,
+                .pixel_format = sg.PixelFormat.RGBA8,
+                .min_filter = sg.Filter.LINEAR,
+                .mag_filter = sg.Filter.LINEAR,
             };
-            desc.data.subimage[0][0] = .{.ptr=raw, .size=@intCast(usize, @sizeOf(u8)*(w*h*c))};
+            desc.data.subimage[0][0] = .{ .ptr = raw, .size = @intCast(usize, @sizeOf(u8) * (w * h * c)) };
             var newImage = sg.makeImage(desc);
-            sling.logFmt("Uploaded image #{any} to the gpu. ({any}x{any})", .{newImage.id, desc.width, desc.height});
+            sling.logFmt("Uploaded image #{any} to the gpu. ({any}x{any})", .{ newImage.id, desc.width, desc.height });
             return newImage;
         },
         // Font => {

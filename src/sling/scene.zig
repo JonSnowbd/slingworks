@@ -123,7 +123,11 @@ pub fn initFromBytes(data: []const u8) *Self {
             for (slice) |info| {
                 if (std.mem.eql(u8, pair.key_ptr.*, info.name)) {
                     self.editorData.objectToIndex.put(info.name, i) catch unreachable;
-                    self.childObjects[i] = info.autoCreateFrom(pair.value_ptr.*, self);
+                    if (info.isShadow()) {
+                        self.childObjects[i] = info.autoCreate(self);
+                    } else {
+                        self.childObjects[i] = info.autoCreateFrom(pair.value_ptr.*, self);
+                    }
                 }
             }
             i += 1;
@@ -173,6 +177,9 @@ pub fn toBytes(self: *Self, allocator: *std.mem.Allocator) []const u8 {
 
     var children = tree.newObject();
     for (self.childObjects) |interface| {
+        if (interface.information.isShadow()) {
+            continue;
+        }
         children.data.Map.put(interface.information.name, interface.serialize(interface, tree)) catch unreachable;
     }
 

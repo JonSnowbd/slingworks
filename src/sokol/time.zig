@@ -16,8 +16,8 @@ pub extern fn stm_since(u64) u64;
 pub fn since(start_ticks: u64) u64 {
     return stm_since(start_ticks);
 }
-pub extern fn stm_laptime([*c] u64) u64;
-pub fn laptime(last_time: * u64) u64 {
+pub extern fn stm_laptime([*c]u64) u64;
+pub fn laptime(last_time: *u64) u64 {
     return stm_laptime(last_time);
 }
 pub extern fn stm_round_to_common_refresh_rate(u64) u64;

@@ -95,8 +95,8 @@ pub const InitialRunSettings = struct {
 };
 var launchSettings: InitialRunSettings = .{};
 
-var initFunctions: std.ArrayList(fn()void) = std.ArrayList(fn()void).init(mem.Allocator);
-var loopFunctions: std.ArrayList(fn()void) = std.ArrayList(fn()void).init(mem.Allocator);
+var initFunctions: std.ArrayList(fn () void) = std.ArrayList(fn () void).init(mem.Allocator);
+var loopFunctions: std.ArrayList(fn () void) = std.ArrayList(fn () void).init(mem.Allocator);
 
 // We stored and launched scenes here
 var coldStorage: std.StringArrayHashMap(*Scene) = std.StringArrayHashMap(*Scene).init(mem.Allocator);
@@ -128,20 +128,26 @@ pub const state = struct {
 
     /// Deinits any current scene and moves to the new given scene immediately.
     pub fn changeScene(newScene: *Scene) void {
-        if(@This().scene) |oldScene| {
+        if (@This().scene) |oldScene| {
             oldScene.deinit();
         }
         @This().scene = newScene;
     }
     pub fn startRoom(newRoom: package.room.Register) void {
-        if(@This().room) |currentRoom| {
-            if(currentRoom.deinitMethod) |dfn| {
+        @This().leaveRoom();
+        @This().room = newRoom;
+        if (@This().room) |currentRoom| {
+            if (currentRoom.initMethod) |ifn| {
+                ifn();
+            }
+        }
+    }
+    pub fn leaveRoom() void {
+        if (@This().room) |currentRoom| {
+            if (currentRoom.deinitMethod) |dfn| {
                 dfn();
             }
         }
-        @This().room = newRoom;
-    }
-    pub fn leaveRoom() void {
         @This().room = null;
     }
 };
@@ -169,25 +175,29 @@ pub fn run(settings: InitialRunSettings) void {
 }
 
 export fn sling_init() void {
-    if(launchSettings.fontBytes) |fb| {
+    if (launchSettings.fontBytes) |fb| {
         dict.iconify();
         var oversamples: usize = 2;
 
         var font = imgui.config.startFontCreation();
-        if(launchSettings.fontIsPixelArt) {
+        if (launchSettings.fontIsPixelArt) {
             font.nearestNeighbour = true;
             oversamples = 1;
         }
-        var igFont = font.addEmbeddedTTF(fb, .{.overdraw=oversamples,.size=launchSettings.fontSize});
+        var igFont = font.addEmbeddedTTF(fb, .{ .overdraw = oversamples, .size = launchSettings.fontSize });
         const imFontRanges = [_]u32{ 0xF004, 0xF4AD };
-        _ = font.addEmbeddedTTF(@embedFile("deps/fontawesome.otf"), .{.overdraw=oversamples,.includeDefaultRanges=false,.size=launchSettings.fontSize-3.0,.range=imFontRanges});
+        _ = font.addEmbeddedTTF(@embedFile("deps/fontawesome.otf"), .{ .overdraw = oversamples, .includeDefaultRanges = false, .size = launchSettings.fontSize - 4.0, .range = imFontRanges });
         font.build();
 
         var io = package.imgui.igGetIO();
         io.*.FontDefault = igFont;
+    } else {
+        var font = imgui.config.startFontCreation();
+        font.build();
     }
     render = package.Renderer.init();
-    for(initFunctions.items) |ifn| {
+    room.ListedRooms.append(&room.PlayEditorScene) catch unreachable;
+    for (initFunctions.items) |ifn| {
         ifn();
     }
 }
@@ -200,16 +210,16 @@ export fn sling_loop() void {
     input.pump();
     package.editor.editorUI();
 
-    for(loopFunctions.items) |lfn| {
+    for (loopFunctions.items) |lfn| {
         lfn();
     }
 
-    if(state.room) |rm| {
-        if(rm.updateMethod) |roomUpdate| {
+    if (state.room) |rm| {
+        if (rm.updateMethod) |roomUpdate| {
             roomUpdate();
         }
     } else {
-        if(state.scene) |scn| {
+        if (state.scene) |scn| {
             scn.update();
         }
     }
@@ -256,12 +266,12 @@ pub fn configure(comptime T: type) *Object.GenBuildData(T) {
 }
 /// Adds an init function as a function to be ran after everything is initialized, do your
 /// global asset loading here, or anything you need to do with imgui.
-pub fn configureInit(initFn: fn()void) void {
+pub fn configureInit(initFn: fn () void) void {
     initFunctions.append(initFn) catch unreachable;
 }
 /// Adds an loop function as a function to be ran before each update loop. This is pretty
 /// niche and should be used sparingly.
-pub fn configureLoop(loopFn: fn()void) void {
+pub fn configureLoop(loopFn: fn () void) void {
     loopFunctions.append(loopFn) catch unreachable;
 }
 /// Give in a type you've configured, to be used as a scene that can be created and edited inside
@@ -288,10 +298,15 @@ pub fn configureScene(comptime T: type, comptime children: anytype) void {
     }
 }
 
+/// Provide a const reference to a room register to be listed as a main menu room in the editor.
+pub fn configureRoom(register: *const room.Register) void {
+    room.ListedRooms.append(register) catch unreachable;
+}
+
 const console = @import("editor/console.zig");
 /// Simple log, forwards the message to the editor log if in editor, or stdout if not.
 pub fn log(message: []const u8) void {
-    if(state.isEditing) {
+    if (state.isEditing or state.room != null) {
         console.submit(message, theme.primary, dict.logIconNormal);
     } else {
         std.debug.print("SLING: {s}\n", .{message});
@@ -299,7 +314,7 @@ pub fn log(message: []const u8) void {
 }
 /// Simple log with typical zig formatting, forwards the message to the editor log if in editor, or stdout if not.
 pub fn logFmt(comptime fmt: []const u8, params: anytype) void {
-    if(state.isEditing) {
+    if (state.isEditing or state.room != null) {
         console.submitFmt(fmt, params, theme.primary, dict.logIconNormal);
     } else {
         std.debug.print("SLING: {s}\n", .{std.fmt.allocPrint(mem.RingBuffer, fmt, params)});
@@ -307,7 +322,7 @@ pub fn logFmt(comptime fmt: []const u8, params: anytype) void {
 }
 /// Error log, forwards the message to the editor log if in editor, or stdout if not.
 pub fn logErr(message: []const u8) void {
-    if(state.isEditing) {
+    if (state.isEditing or state.room != null) {
         console.submit(message, theme.debugError, dict.logIconError);
     } else {
         std.debug.print("!SLING!: {s}\n", .{message});
@@ -315,7 +330,7 @@ pub fn logErr(message: []const u8) void {
 }
 /// Error log with typical zig formatting, forwards the message to the editor log if in editor, or stdout if not.
 pub fn logErrFmt(comptime fmt: []const u8, params: anytype) void {
-    if(state.isEditing) {
+    if (state.isEditing or state.room != null) {
         console.submitFmt(fmt, params, theme.debugError, dict.logIconError);
     } else {
         std.debug.print("!SLING!: {s}\n", .{std.fmt.allocPrint(mem.RingBuffer, fmt, params)});
@@ -323,7 +338,7 @@ pub fn logErrFmt(comptime fmt: []const u8, params: anytype) void {
 }
 /// Warning log, forwards the message to the editor log if in editor, or stdout if not.
 pub fn logWarn(message: []const u8) void {
-    if(state.isEditing) {
+    if (state.isEditing or state.room != null) {
         console.submit(message, theme.debugWarning, dict.logIconWarn);
     } else {
         std.debug.print("SLING Warn: {s}\n", .{message});
@@ -331,7 +346,7 @@ pub fn logWarn(message: []const u8) void {
 }
 /// Warning log with typical zig formatting, forwards the message to the editor log if in editor, or stdout if not.
 pub fn logWarnFmt(comptime fmt: []const u8, params: anytype) void {
-    if(state.isEditing) {
+    if (state.isEditing or state.room != null) {
         console.submitFmt(fmt, params, theme.debugWarning, dict.logIconWarn);
     } else {
         std.debug.print("SLING Warn: {s}\n", .{std.fmt.allocPrint(mem.RingBuffer, fmt, params)});

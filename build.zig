@@ -31,8 +31,8 @@ pub fn build(b: *std.build.Builder) void {
 }
 
 pub fn link(exe: *std.build.LibExeObjStep) void {
-    if(exe.target.isWindows()) {
-        if(exe.builder.is_release) {
+    if (exe.target.isWindows()) {
+        if (exe.builder.is_release) {
             exe.subsystem = .Windows; // Disable the console if release
             exe.want_lto = false; // Also tls_index gets lost if we lto.
         }
@@ -42,8 +42,8 @@ pub fn link(exe: *std.build.LibExeObjStep) void {
     linkImGui(exe);
     // Link stb_image
     exe.linkLibC();
-    exe.addCSourceFile(getRelativePath()++"src/deps/stb_image.c", &[_][]const u8{});
-    exe.addPackagePath("sling", getRelativePath()++"src/main.zig");
+    exe.addCSourceFile(getRelativePath() ++ "src/deps/stb_image.c", &[_][]const u8{});
+    exe.addPackagePath("sling", getRelativePath() ++ "src/main.zig");
 }
 
 fn linkSokol(exe: *std.build.LibExeObjStep) void {
@@ -53,7 +53,7 @@ fn linkSokol(exe: *std.build.LibExeObjStep) void {
     exe.linkLibC();
     exe.linkLibCpp();
     const sokol_path = prefix ++ "src/sokol/c/";
-    const csources = [_][]const u8 {
+    const csources = [_][]const u8{
         "sokol_app.c",
         "sokol_gfx.c",
         "sokol_time.c",
@@ -74,8 +74,7 @@ fn linkSokol(exe: *std.build.LibExeObjStep) void {
             exe.linkSystemLibrary("Xi");
             exe.linkSystemLibrary("Xcursor");
             exe.linkSystemLibrary("GL");
-        }
-        else if (target.isWindows()) {
+        } else if (target.isWindows()) {
             exe.linkSystemLibrary("kernel32");
             exe.linkSystemLibrary("user32");
             exe.linkSystemLibrary("gdi32");
@@ -112,5 +111,12 @@ fn linkImGui(exe: *std.build.LibExeObjStep) void {
     exe.addIncludeDir(path ++ "src/cimgui");
 
     // Add C
-    exe.addCSourceFiles(&.{ path ++ "src/cimgui/imgui/imgui.cpp", path ++ "src/cimgui/imgui/imgui_demo.cpp", path ++ "src/cimgui/imgui/imgui_draw.cpp", path ++ "src/cimgui/imgui/imgui_tables.cpp", path ++ "src/cimgui/imgui/imgui_widgets.cpp", path ++ "src/cimgui/cimgui.cpp", }, flagContainer.items);
+    exe.addCSourceFiles(&.{
+        path ++ "src/cimgui/imgui/imgui.cpp",
+        path ++ "src/cimgui/imgui/imgui_demo.cpp",
+        path ++ "src/cimgui/imgui/imgui_draw.cpp",
+        path ++ "src/cimgui/imgui/imgui_tables.cpp",
+        path ++ "src/cimgui/imgui/imgui_widgets.cpp",
+        path ++ "src/cimgui/cimgui.cpp",
+    }, flagContainer.items);
 }

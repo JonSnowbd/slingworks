@@ -28,6 +28,14 @@ pub fn update() void {
             fileMenu();
             ig.igEndMenu();
         }
+        if (ig.igBeginMenu(dict.roomMenuTag.ptr, sling.state.room == null)) {
+            for (sling.room.ListedRooms.items) |item| {
+                if (ig.igMenuItem_Bool(item.name.ptr, null, false, true)) {
+                    sling.state.startRoom(item.*);
+                }
+            }
+            ig.igEndMenu();
+        }
         if (ig.igBeginMenu(dict.miscMenuTag.ptr, true)) {
             if (ig.igMenuItem_Bool(dict.miscMenuImGui.ptr, null, demoOpen, true)) {
                 demoOpen = !demoOpen;

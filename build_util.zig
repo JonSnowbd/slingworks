@@ -86,23 +86,23 @@ fn copy(from: []const u8, to: []const u8, filename: []const u8) AddContentErrors
 pub fn shaders(exe: *std.build.LibExeObjStep, comptime path: []const u8) !void {
     // todo linux/mac paths and quirks..
     const shc = getRelativePath() ++ "bin-dev/win32/sokol-shdc.exe";
-    var files = try std.fs.cwd().openDir(path, .{.iterate=true});
+    var files = try std.fs.cwd().openDir(path, .{ .iterate = true });
     defer files.close();
     var iter = files.iterate();
-    
-    var shaderCacheFolder = try std.fs.path.join(exe.builder.allocator, &[_][]const u8{exe.builder.cache_root, "shaders"});
-    if(std.mem.indexOf(u8, shaderCacheFolder, "zig-cache")) |_| {
+
+    var shaderCacheFolder = try std.fs.path.join(exe.builder.allocator, &[_][]const u8{ exe.builder.cache_root, "shaders" });
+    if (std.mem.indexOf(u8, shaderCacheFolder, "zig-cache")) |_| {
         try std.fs.cwd().makePath(shaderCacheFolder);
     }
 
-    while(iter.next() catch unreachable) |file| {
-        if(std.mem.eql(u8, ".glsl", std.fs.path.extension(file.name))) {
+    while (iter.next() catch unreachable) |file| {
+        if (std.mem.eql(u8, ".glsl", std.fs.path.extension(file.name))) {
             var name = std.fs.path.basename(file.name);
-            var target = try std.fs.path.join(exe.builder.allocator, &[_][]const u8 {path, file.name});
-            var destination = try std.fs.path.join(exe.builder.allocator, &[_][]const u8{shaderCacheFolder, try std.mem.concat(exe.builder.allocator, u8, &[_][]const u8 {name, ".zig"})});
-            var inputStep = try std.mem.concat(exe.builder.allocator, u8, &[_][]const u8 {"--input=",target});
-            var destStep = try std.mem.concat(exe.builder.allocator, u8, &[_][]const u8 {"--output=",destination});
-            var step = exe.builder.addSystemCommand(&[_][]const u8{shc, inputStep, destStep, "--slang=glsl330:metal_macos:hlsl4", "--format=sokol_zig"});
+            var target = try std.fs.path.join(exe.builder.allocator, &[_][]const u8{ path, file.name });
+            var destination = try std.fs.path.join(exe.builder.allocator, &[_][]const u8{ shaderCacheFolder, try std.mem.concat(exe.builder.allocator, u8, &[_][]const u8{ name, ".zig" }) });
+            var inputStep = try std.mem.concat(exe.builder.allocator, u8, &[_][]const u8{ "--input=", target });
+            var destStep = try std.mem.concat(exe.builder.allocator, u8, &[_][]const u8{ "--output=", destination });
+            var step = exe.builder.addSystemCommand(&[_][]const u8{ shc, inputStep, destStep, "--slang=glsl330:metal_macos:hlsl4", "--format=sokol_zig" });
             exe.step.dependOn(&step.step);
             // std.build.Pkg{
             //     .name=std.heap.page_allocator.dupeZ(u8,name) catch unreachable,

@@ -18,24 +18,24 @@ pub const DockingParams = struct {
 pub const WindowParams = struct {
     /// If this pointer exists, it will enable window minimizing, and modify
     /// the target bool to suit the current state.
-    openPtr:?*bool = null,
+    openPtr: ?*bool = null,
     /// If true, the window cant move or resize by user input.
-    static:bool = false,
+    static: bool = false,
     /// Enables or disables the titlebar decoration
-    titlebarEnabled:bool = true,
-    background:bool = true,
+    titlebarEnabled: bool = true,
+    background: bool = true,
 
-    pub fn constructFlags(self:WindowParams) ig.ImGuiWindowFlags {
+    pub fn constructFlags(self: WindowParams) ig.ImGuiWindowFlags {
         var flags = ig.ImGuiWindowFlags_None;
 
-        if(self.static) {
+        if (self.static) {
             flags |= ig.ImGuiWindowFlags_NoResize;
             flags |= ig.ImGuiWindowFlags_NoMove;
         }
-        if(!self.titlebarEnabled) {
+        if (!self.titlebarEnabled) {
             flags |= ig.ImGuiWindowFlags_NoTitleBar;
         }
-        if(!self.background) {
+        if (!self.background) {
             flags |= ig.ImGuiWindowFlags_NoBackground;
         }
 
@@ -44,10 +44,10 @@ pub const WindowParams = struct {
 };
 
 pub const InputParams = struct {
-    preferDragInput:bool = true,
-    step:f32 = 1.0,
-    multiline:bool = false,
-    updateOnEnter:bool = false,
+    preferDragInput: bool = true,
+    step: f32 = 1.0,
+    multiline: bool = false,
+    updateOnEnter: bool = false,
     uppercase: bool = false,
     autoSelectAll: bool = false,
     allowTabInput: bool = false,
@@ -57,25 +57,25 @@ pub const InputParams = struct {
     pub fn toInputTextFlags(self: InputParams) ig.ImGuiInputTextFlags {
         var flags = ig.ImGuiInputTextFlags_None;
 
-        if(self.uppercase) {
+        if (self.uppercase) {
             flags |= ig.ImGuiInputTextFlags_CharsUppercase;
         }
-        if(self.multiline) {
+        if (self.multiline) {
             flags |= ig.ImGuiInputTextFlags_Multiline;
         }
-        if(self.autoSelectAll) {
+        if (self.autoSelectAll) {
             flags |= ig.ImGuiInputTextFlags_AutoSelectAll;
         }
-        if(self.updateOnEnter) {
+        if (self.updateOnEnter) {
             flags |= ig.ImGuiInputTextFlags_EnterReturnsTrue;
         }
-        if(self.ctrlEnterNewline) {
+        if (self.ctrlEnterNewline) {
             flags |= ig.ImGuiInputTextFlags_CtrlEnterForNewLine;
         }
-        if(self.allowTabInput) {
+        if (self.allowTabInput) {
             flags |= ig.ImGuiInputTextFlags_AllowTabInput;
         }
-        if(self.noUndoRedo) {
+        if (self.noUndoRedo) {
             flags |= ig.ImGuiInputTextFlags_NoUndoRedo;
         }
 
@@ -129,7 +129,7 @@ pub fn input(label: []const u8, ptr: anytype, params: InputParams) bool {
     const Info = @typeInfo(T);
     // Early outs for specific types
     const fmax = std.math.f32_max;
-    switch(T) {
+    switch (T) {
         math.Vec2 => {
             var temp: [2]f32 = .{ ptr.*.x, ptr.*.y };
             var result = ig.igDragFloat2(label.ptr, &temp, params.step, -fmax, fmax, "%.2f", ig.ImGuiSliderFlags_NoRoundToFormat);
@@ -157,8 +157,8 @@ pub fn input(label: []const u8, ptr: anytype, params: InputParams) bool {
         math.Rect => {
             var temp: [4]f32 = .{ ptr.*.position.x, ptr.*.position.y, ptr.*.size.x, ptr.*.size.y };
             var result: bool = undefined;
-            if(params.preferDragInput) {
-                result = ig.igDragFloat4(label.ptr, &temp, params.step,-fmax,fmax,"%.2f",ig.ImGuiSliderFlags_NoRoundToFormat);
+            if (params.preferDragInput) {
+                result = ig.igDragFloat4(label.ptr, &temp, params.step, -fmax, fmax, "%.2f", ig.ImGuiSliderFlags_NoRoundToFormat);
             } else {
                 result = ig.igInputFloat4(label.ptr, &temp, "%.2f", params.toInputTextFlags());
             }
@@ -167,21 +167,21 @@ pub fn input(label: []const u8, ptr: anytype, params: InputParams) bool {
             }
             return result;
         },
-        else => {}
+        else => {},
     }
 
-    switch(Info) {
-        .Int =>  {
+    switch (Info) {
+        .Int => {
             const max = std.math.min(std.math.maxInt(c_int), std.math.maxInt(T));
-            const min = if(Info.Int.signedness == .signed) -max else 0;
+            const min = if (Info.Int.signedness == .signed) -max else 0;
             var temp = @intCast(c_int, ptr.*);
-            var changed:bool = undefined;
-            if(params.preferDragInput) {
-                changed = ig.igDragInt(label.ptr, &temp, params.step*0.5,min,max,"%i",ig.ImGuiSliderFlags_NoRoundToFormat);
+            var changed: bool = undefined;
+            if (params.preferDragInput) {
+                changed = ig.igDragInt(label.ptr, &temp, params.step * 0.5, min, max, "%i", ig.ImGuiSliderFlags_NoRoundToFormat);
             } else {
-                changed = ig.igInputInt(label.ptr, &temp, @floatToInt(c_int, params.step), @floatToInt(c_int, params.step)*5, params.toInputTextFlags());
+                changed = ig.igInputInt(label.ptr, &temp, @floatToInt(c_int, params.step), @floatToInt(c_int, params.step) * 5, params.toInputTextFlags());
             }
-            if(changed) {
+            if (changed) {
                 ptr.* = @intCast(T, temp);
             }
             return changed;
@@ -193,13 +193,13 @@ pub fn input(label: []const u8, ptr: anytype, params: InputParams) bool {
             const max = std.math.f32_max;
             const min = -max;
             var temp = @floatCast(f32, ptr.*);
-            var changed:bool = undefined;
-            if(params.preferDragInput) {
-                changed = ig.igDragFloat(label.ptr, &temp, params.step,min,max,"%.2f",ig.ImGuiSliderFlags_NoRoundToFormat);
+            var changed: bool = undefined;
+            if (params.preferDragInput) {
+                changed = ig.igDragFloat(label.ptr, &temp, params.step, min, max, "%.2f", ig.ImGuiSliderFlags_NoRoundToFormat);
             } else {
-                changed = ig.igInputFloat(label.ptr, &temp, params.step, params.step*5, "%.2f", params.toInputTextFlags());
+                changed = ig.igInputFloat(label.ptr, &temp, params.step, params.step * 5, "%.2f", params.toInputTextFlags());
             }
-            if(changed) {
+            if (changed) {
                 ptr.* = @floatCast(T, temp);
             }
             return changed;
@@ -240,7 +240,7 @@ pub fn input(label: []const u8, ptr: anytype, params: InputParams) bool {
         else => {
             std.debug.print("Failed to find an imgui editor for {s}\n", .{@typeName(T)});
             return false;
-        }
+        },
     }
 }
 
@@ -274,7 +274,7 @@ pub fn textWrapped(comptime fmt: []const u8, params: anytype) void {
     ig.igTextWrapped(igt.ptr);
 }
 /// Outputs an `igTextColored` via zig formatting.
-pub fn textColored(comptime fmt: []const u8, params: anytype, color:math.Vec4) void {
+pub fn textColored(comptime fmt: []const u8, params: anytype, color: math.Vec4) void {
     var igt = format(fmt, params);
     ig.igTextColored(color, igt.ptr);
 }
@@ -288,7 +288,7 @@ pub fn endWindow() void {
 /// follow this up with some more imgui components to place inside the tooltip.
 /// Make sure to end with `endTooltip()` inside of the if block.
 pub fn beginTooltip() bool {
-    if(ig.igIsItemHovered(ig.ImGuiHoveredFlags_None)) {
+    if (ig.igIsItemHovered(ig.ImGuiHoveredFlags_None)) {
         ig.igBeginTooltip();
         return true;
     }
@@ -303,7 +303,7 @@ pub fn endTooltip() void {
 pub fn help(comptime fmt: []const u8, params: anytype) void {
     ig.igSameLine(0, 3);
     ig.igTextDisabled("?");
-    if(beginTooltip()) {
+    if (beginTooltip()) {
         text(fmt, params);
         endTooltip();
     }
