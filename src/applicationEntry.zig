@@ -29,7 +29,7 @@ var last: u64 = 0;
 export fn qs_init() void {
     stm.setup();
     sg.setup(.{ .context = sgapp.context() });
-    sling.imgui.components.internalBuf = std.heap.FixedBufferAllocator.init(sling.mem.Allocator.alloc(u8, 1024 * 1024 * 4) catch unreachable);
+    sling.imgui.components.internalBuf = std.heap.FixedBufferAllocator.init(sling.mem.Allocator.alloc(u8, 1024 * 1024 * 6) catch unreachable);
     imguiImpl.init();
     last = stm.now();
     if (userInit) |ini| {
