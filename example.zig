@@ -29,7 +29,10 @@ pub const Puck = struct {
         self.moveAndCollide(scene);
         var rect = sling.math.Rect{ .position = self.position, .size = .{ .x = 50, .y = 50 } };
         var tex = sling.asset.ensure(sling.Texture, "Avatar.png");
-        sling.render.sprite(tex, rect, .{ .normalizedOrigin = .{ .x = 0.5, .y = 0.5 } });
+        sling.render.sprite(tex, rect, .{
+            .normalizedOrigin = .{ .x = 0.5, .y = 0.5 },
+            .color = sling.math.Vec4.new(1.0,0.0,0.0,1.0)
+        });
     }
     fn moveAndCollide(self: *Puck, scene: *sling.Scene) void {
         var bounds = scene.is(Arena).?.bounds;
