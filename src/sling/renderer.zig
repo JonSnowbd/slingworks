@@ -4,7 +4,7 @@ const sg = sling.package.sokol.gfx;
 const sapp = sling.package.sokol.app;
 
 const Self = @This();
-const Vert = struct { pos: sling.math.Vec2, uv: sling.math.Vec2, color: sling.math.Vec4 };
+const Vert = extern struct { pos: sling.math.Vec2, uv: sling.math.Vec2, color: sling.math.Vec4 };
 const RenderPipeline = sling.package.reroute.RenderPipeline(Vert, 65536);
 const PipelineShader = @import("../reroute/shaders/imgui.glsl.zig");
 
@@ -103,7 +103,8 @@ pub fn init() Self {
         .min_filter = sg.Filter.NEAREST,
         .mag_filter = sg.Filter.NEAREST,
     };
-    desc.data.subimage[0][0] = sg.asRange([_]sling.math.Vec4{sling.math.Vec4.new(1.0, 1.0, 1.0, 1.0)});
+    // desc.data.subimage[0][0] = sg.asRange([_]sling.math.Vec4{sling.math.Vec4.new(1.0, 1.0, 1.0, 1.0)});
+    desc.data.subimage[0][0] = sg.asRange([_]u32{0xFFFFFFFF});
     var whitePix = sg.makeImage(desc);
     sling.logFmt("SLING: Uploaded image #{any} to the gpu. ({any}x{any})", .{ whitePix.id, desc.width, desc.height });
 
@@ -275,22 +276,22 @@ pub fn rectangle(self: *Self, rect: sling.math.Rect, config: RectangleConfig) vo
         const tl = Vert{
             .pos = rect.position,
             .uv = sling.math.Vec2.new(0, 0),
-            .color = config.color,
+            .color = config.topLeftColorOverride orelse config.color,
         };
         const tr = Vert{
             .pos = rect.position.add(.{ .x = rect.size.x }),
             .uv = sling.math.Vec2.new(1, 0),
-            .color = config.color,
+            .color = config.topRightColorOverride orelse config.color,
         };
         const bl = Vert{
             .pos = rect.position.add(.{ .y = rect.size.y }),
             .uv = sling.math.Vec2.new(0, 1),
-            .color = config.color,
+            .color = config.bottomLeftColorOverride orelse config.color,
         };
         const br = Vert{
             .pos = rect.position.add(rect.size),
             .uv = sling.math.Vec2.new(1, 1),
-            .color = config.color,
+            .color = config.bottomRightColorOverride orelse config.color,
         };
         self.rawQuad(config.space, config.depth, self.whitePixelId, .{ tl, tr, br, bl });
     }

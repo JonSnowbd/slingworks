@@ -35,13 +35,19 @@ pub fn Generate(comptime Vertex: type, MaxQuads: usize) type {
             const shaderDesc = @field(shader, prog ++ "ShaderDesc")(sg.queryBackend());
 
             // PIPELINE:
-            var pipelineDesc: sg.PipelineDesc = .{ .depth = .{
-                .write_enabled = false,
-                .compare = .LESS_EQUAL,
-            }, .index_type = .UINT32, .cull_mode = .DEFAULT };
+            var pipelineDesc: sg.PipelineDesc = .{
+                .depth = .{
+                    .write_enabled = false,
+                    .compare = .LESS_EQUAL,
+                }, 
+                .index_type = .UINT32, .cull_mode = .DEFAULT, 
+            };
             pipelineDesc.shader = sg.makeShader(shaderDesc);
             // pipelineDesc.color_count = 1;
             pipelineDesc.colors[0].write_mask = sg.ColorMask.RGBA;
+            pipelineDesc.colors[0].blend.enabled = true;
+            pipelineDesc.colors[0].blend.src_factor_rgb = sg.BlendFactor.SRC_ALPHA;
+            pipelineDesc.colors[0].blend.dst_factor_rgb = sg.BlendFactor.ONE_MINUS_SRC_ALPHA;
             inline for (std.meta.fields(Vertex)) |field, i| {
                 switch (field.field_type) {
                     f32 => {
