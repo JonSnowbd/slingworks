@@ -175,10 +175,11 @@ pub fn run(settings: InitialRunSettings) void {
 }
 
 export fn sling_init() void {
+    render = package.Renderer.init();
+
     if (launchSettings.fontBytes) |fb| {
         dict.iconify();
         var oversamples: usize = 2;
-
         var font = imgui.config.startFontCreation();
         if (launchSettings.fontIsPixelArt) {
             font.nearestNeighbour = true;
@@ -195,7 +196,6 @@ export fn sling_init() void {
         var font = imgui.config.startFontCreation();
         font.build();
     }
-    render = package.Renderer.init();
     room.ListedRooms.append(&room.PlayEditorScene) catch unreachable;
     for (initFunctions.items) |ifn| {
         ifn();

@@ -251,7 +251,7 @@ pub fn demo() void {
 
 /// Things you allocate with this do not need to be freed.
 pub fn format(comptime fmt: []const u8, params: anytype) []const u8 {
-    return std.fmt.allocPrintZ(&internalBuf.allocator, fmt, params) catch unreachable;
+    return std.fmt.allocPrintZ(internalBuf.allocator(), fmt, params) catch unreachable;
 }
 
 /// Outputs an `igText` via zig formatting.

@@ -5,10 +5,10 @@ pub const json = @import("serializer_json.zig");
 pub const Configuration = struct {
     const HashSet = std.StringHashMap(void);
 
-    allocator: *std.mem.Allocator,
+    allocator: std.mem.Allocator,
     ignoredFields: std.StringHashMap(HashSet),
 
-    pub fn init(allocator: *std.mem.Allocator) Configuration {
+    pub fn init(allocator: std.mem.Allocator) Configuration {
         return .{
             .allocator = allocator,
             .ignoredFields = std.StringHashMap(HashSet).init(allocator),
@@ -38,21 +38,21 @@ pub const Configuration = struct {
     }
 };
 pub const Lexicon = struct {
-    convert: fn (*std.mem.Allocator, *Tree) []const u8,
-    parse: fn (*std.mem.Allocator, []const u8) *Tree,
+    convert: fn (std.mem.Allocator, *Tree) []const u8,
+    parse: fn (std.mem.Allocator, []const u8) *Tree,
 };
 
 pub const TreeAllocator = union(enum) {
-    raw: *std.mem.Allocator,
+    raw: std.mem.Allocator,
     arena: std.heap.ArenaAllocator,
 
-    pub fn internal(self: *TreeAllocator) *std.mem.Allocator {
+    pub fn internal(self: *TreeAllocator) std.mem.Allocator {
         switch (self.*) {
             .raw => {
                 return self.raw;
             },
             .arena => {
-                return &self.arena.allocator;
+                return self.arena.allocator();
             },
         }
     }
@@ -62,7 +62,7 @@ pub const TreeAllocator = union(enum) {
                 return self.raw.create(T) catch unreachable;
             },
             .arena => {
-                return self.arena.allocator.create(T) catch unreachable;
+                return self.arena.allocator().create(T) catch unreachable;
             },
         }
     }
@@ -72,7 +72,7 @@ pub const TreeAllocator = union(enum) {
                 return self.raw.alloc(T, N) catch unreachable;
             },
             .arena => {
-                return self.arena.allocator.alloc(T, N) catch unreachable;
+                return self.arena.allocator().alloc(T, N) catch unreachable;
             },
         }
     }
@@ -82,7 +82,7 @@ pub const TreeAllocator = union(enum) {
                 self.raw.free(value);
             },
             .arena => {
-                self.arena.allocator.free(value);
+                self.arena.allocator().free(value);
             },
         }
     }
@@ -92,7 +92,7 @@ pub const TreeAllocator = union(enum) {
                 self.raw.destroy(value);
             },
             .arena => {
-                self.arena.allocator.destroy(value);
+                self.arena.allocator().destroy(value);
             },
         }
     }
@@ -102,16 +102,16 @@ pub const Tree = struct {
     alloc: TreeAllocator = undefined,
     root: *Node = undefined,
 
-    pub fn initRaw(allocator: *std.mem.Allocator) *Tree {
+    pub fn initRaw(allocator: std.mem.Allocator) *Tree {
         var self: *Tree = allocator.create(Tree) catch unreachable;
         self.config = null;
         self.alloc = .{ .raw = allocator };
         self.root = undefined;
         return self;
     }
-    pub fn initArena(allocator: *std.mem.Allocator) *Tree {
+    pub fn initArena(allocator: std.mem.Allocator) *Tree {
         var arena = std.heap.ArenaAllocator.init(allocator);
-        var self: *Tree = arena.allocator.create(Tree) catch unreachable;
+        var self: *Tree = arena.allocator().create(Tree) catch unreachable;
         self.config = null;
         self.alloc = .{ .arena = arena };
         self.root = undefined;
@@ -368,8 +368,8 @@ pub const Node = struct {
 
     /// Pushes a node into a type, if possible. If owner is not null, initialized arraylists
     /// and hashmaps will belong to the owner instead of the internal tree allocator.
-    pub fn into(self: *Node, ptr: anytype, owner: ?*std.mem.Allocator) void {
-        var alloc: *std.mem.Allocator = if (owner != null) owner.? else self.tree.alloc.internal();
+    pub fn into(self: *Node, ptr: anytype, owner: ?std.mem.Allocator) void {
+        var alloc: std.mem.Allocator = if (owner != null) owner.? else self.tree.alloc.internal();
         const T = @TypeOf(ptr.*);
         const typeInfo = @typeInfo(T);
 

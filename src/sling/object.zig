@@ -227,7 +227,7 @@ pub fn GenBuildData(comptime T: type) type {
             }
         };
 
-        allocator: *std.mem.Allocator,
+        allocator: std.mem.Allocator,
         _hidden: std.StringHashMap(void),
         _init: std.ArrayList(FnWrap),
         _deinitFn: std.ArrayList(FnWrap),
@@ -243,7 +243,7 @@ pub fn GenBuildData(comptime T: type) type {
             }
             return false;
         }
-        fn initBuildData(allocator: *std.mem.Allocator) @This() {
+        fn initBuildData(allocator: std.mem.Allocator) @This() {
             return .{
                 .allocator = allocator,
                 ._hidden = std.StringHashMap(void).init(allocator),
@@ -415,7 +415,7 @@ pub fn CollectionType(comptime T: type) type {
                 .copyFromTo = Self.interface_copyFromTo,
             } } };
             instance.parent = scene;
-            instance.value = instance.interface.arena.allocator.alloc(T, 0) catch |err| {
+            instance.value = instance.interface.arena.allocator().alloc(T, 0) catch |err| {
                 std.debug.panic("Failed to alloc initial values for {s} due to:\n{s}", .{ GenBuildData(T).information.name, @errorName(err) });
             };
             return &instance.interface;
@@ -425,16 +425,25 @@ pub fn CollectionType(comptime T: type) type {
             var instance: *Self = build.allocator.create(Self) catch |err| {
                 std.debug.panic("Failed to allocate type {s} with error:\n{s}", .{ @typeName(Self), @errorName(err) });
             };
-            instance.interface = .{ .arena = std.heap.ArenaAllocator.init(build.allocator), .information = &GenBuildData(T).information, .serialize = Self.interface_serialize, .update = Self.interface_update, .deinitAll = Self.interface_deinitAll, .data = .{ .Collection = .{
-                .editor = Self.interface_editor,
-                .remove = Self.interface_remove,
-                .append = Self.interface_append,
-                .getCount = Self.interface_getCount,
-                .getName = Self.interface_getName,
-                .copyFromTo = Self.interface_copyFromTo,
-            } } };
+            instance.interface = .{ 
+                .arena = std.heap.ArenaAllocator.init(build.allocator),
+                .information = &GenBuildData(T).information,
+                .serialize = Self.interface_serialize,
+                .update = Self.interface_update,
+                .deinitAll = Self.interface_deinitAll,
+                .data = .{ 
+                    .Collection = .{
+                        .editor = Self.interface_editor,
+                        .remove = Self.interface_remove,
+                        .append = Self.interface_append,
+                        .getCount = Self.interface_getCount,
+                        .getName = Self.interface_getName,
+                        .copyFromTo = Self.interface_copyFromTo,
+                    }
+                } 
+            };
             instance.parent = scene;
-            node.into(&instance.value, &instance.interface.arena.allocator);
+            node.into(&instance.value, instance.interface.arena.allocator());
             for (build._init.items) |wrapper| {
                 wrapper.updateArray(instance.value, instance.parent);
             }
@@ -471,7 +480,7 @@ pub fn CollectionType(comptime T: type) type {
         fn interface_append(object: *Interface) void {
             var build = GenBuildData(T).register();
             var self: *Self = getSelf(object);
-            self.value = self.interface.arena.allocator.realloc(self.value, self.value.len + 1) catch {
+            self.value = self.interface.arena.allocator().realloc(self.value, self.value.len + 1) catch {
                 std.debug.panic("Failed to realloc internal object array of size {any}", .{self.value.len});
             };
             self.value[self.value.len - 1] = .{};
@@ -495,7 +504,7 @@ pub fn CollectionType(comptime T: type) type {
                 wrapper.updateArray(self.value, self.parent);
             }
             self.value[index] = self.value[self.value.len - 1];
-            self.value = self.interface.arena.allocator.realloc(self.value, self.value.len - 1) catch {
+            self.value = self.interface.arena.allocator().realloc(self.value, self.value.len - 1) catch {
                 std.debug.panic("Failed to realloc internal object array of size {any}", .{self.value.len});
             };
         }
@@ -557,7 +566,7 @@ pub fn SingletonType(comptime T: type) type {
             instance.interface = .{ .arena = std.heap.ArenaAllocator.init(build.allocator), .information = &GenBuildData(T).information, .serialize = Self.interface_serialize, .update = Self.interface_update, .deinitAll = Self.interface_deinitAll, .data = .{ .Singleton = .{ .editor = Self.interface_editor, .getName = Self.interface_getName } } };
             instance.parent = scene;
 
-            node.into(&instance.value, &instance.interface.arena.allocator);
+            node.into(&instance.value, instance.interface.arena.allocator());
             for (build._init.items) |wrapper| {
                 wrapper.updateSingular(&instance.value, instance.parent);
             }

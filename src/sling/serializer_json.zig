@@ -3,7 +3,7 @@ const serializer = @import("serializer.zig");
 
 pub const JsonLexicon: serializer.Lexicon = .{ .convert = _jsonLexConv, .parse = _jsonLexParse };
 
-fn _jsonLexConv(alloc: *std.mem.Allocator, tree: *serializer.Tree) []const u8 {
+fn _jsonLexConv(alloc: std.mem.Allocator, tree: *serializer.Tree) []const u8 {
     var bytes = std.ArrayList(u8).init(alloc);
     _jsonLexInner(tree.root, &bytes);
     return bytes.toOwnedSlice();
@@ -69,12 +69,12 @@ fn _jsonLexInner(node: *serializer.Node, holder: *std.ArrayList(u8)) void {
         },
     }
 }
-fn _jsonLexParse(allocator: *std.mem.Allocator, bytes: []const u8) *serializer.Tree {
+fn _jsonLexParse(allocator: std.mem.Allocator, bytes: []const u8) *serializer.Tree {
     return _jsonLexParseInner(allocator, bytes) catch |err| {
         std.debug.panic("FAILED TO SERIALIZE JSON:\n{s}\nERROR:{s}", .{ bytes, @errorName(err) });
     };
 }
-fn _jsonLexParseInner(allocator: *std.mem.Allocator, bytes: []const u8) !*serializer.Tree {
+fn _jsonLexParseInner(allocator: std.mem.Allocator, bytes: []const u8) !*serializer.Tree {
     var tree: *serializer.Tree = serializer.Tree.initArena(allocator);
 
     var nodeStack = std.ArrayList(*serializer.Node).init(allocator);

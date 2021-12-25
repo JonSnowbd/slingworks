@@ -164,7 +164,7 @@ pub fn update(self: *Self) void {
 }
 /// Spits out an owned string that represents your scene in your preferrec
 /// storage format.
-pub fn toBytes(self: *Self, allocator: *std.mem.Allocator) []const u8 {
+pub fn toBytes(self: *Self, allocator: std.mem.Allocator) []const u8 {
     if (self.isSpoof) {
         std.debug.panic("Improper method call on spoofed scene\n", .{});
     }

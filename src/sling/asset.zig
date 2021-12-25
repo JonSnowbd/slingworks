@@ -6,7 +6,7 @@ const assert = std.debug.assert;
 // stb_image bindings:
 pub extern fn stbi_load(filename: [*c]const u8, x: [*c]c_int, y: [*c]c_int, channels_in_file: [*c]c_int, desired_channels: c_int) [*c]u8;
 pub extern fn stbi_set_flip_vertically_on_load(flag_true_if_should_flip: c_int) void;
-pub extern fn stbi_image_free(retval_from_stbi_load: ?*c_void) void;
+pub extern fn stbi_image_free(retval_from_stbi_load: ?*anyopaque) void;
 
 fn AssetWrapper(comptime T: type) type {
     return struct {

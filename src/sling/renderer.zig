@@ -119,12 +119,17 @@ pub fn init() Self {
 /// This is called by sling itself, consider not touching this unless you know what you want from this.
 /// If you need to call this for your game, let me know in an issue how I can make this more ergonomic.
 pub fn finish(self: *Self) void {
+    // Track drawcalls
+    self.drawCalls = 0;
     self.drawRequests(&self.worldRequests);
+    self.drawCalls += self.pipeline.drawCalls;
     self.drawRequests(&self.screenRequests);
+    self.drawCalls += self.pipeline.drawCalls;
+
+    // And reset.
     self.worldRequests.clearRetainingCapacity();
     self.screenRequests.clearRetainingCapacity();
     self.fba.reset();
-    self.drawCalls = self.pipeline.drawCalls;
 }
 
 fn drawRequests(self: *Self, target: *std.ArrayList(RenderRequest)) void {
@@ -191,7 +196,7 @@ pub fn sprite(self: *Self, texture: usize, destination: sling.math.Rect, config:
 /// 2D meshes manually for say water, or cloth.
 /// Verts is expected in order: tl tr br bl
 pub fn rawQuad(self: *Self, space: Space, depth: Depth, texture: usize, verts: [4]Vert) void {
-    var data = self.fba.allocator.alloc([4]Vert, 1) catch {
+    var data = self.fba.allocator().alloc([4]Vert, 1) catch {
         // the gui can hang when this happens, so we use std logging rather than depending on imgui logging.
         std.debug.print("Vertex buffer is full, you're drawing too much in one frame. Consider upping the FBA allocation.\n", .{});
         return;
@@ -229,7 +234,7 @@ pub const RectangleConfig = struct {
 /// See config for details on all the things you can change about the rectangle.
 pub fn rectangle(self: *Self, rect: sling.math.Rect, config: RectangleConfig) void {
     if (config.thickness) |thickness| {
-        var data = self.fba.allocator.alloc([4]Vert, 4) catch {
+        var data = self.fba.allocator().alloc([4]Vert, 4) catch {
             // the gui can hang when this happens, so we use std logging rather than depending on imgui logging.
             std.debug.print("Vertex buffer is full, you're drawing too much in one frame. Consider upping the FBA allocation.\n", .{});
             return;

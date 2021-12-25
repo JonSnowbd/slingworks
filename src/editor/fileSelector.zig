@@ -28,7 +28,7 @@ fn reset() void {
 fn reQuery() void {
     folders.len = 0;
     files.len = 0;
-    var currentPathSlice = std.mem.spanZ(&currentPath);
+    var currentPathSlice = std.mem.span(&currentPath);
     var target = std.fs.cwd().openDir(currentPathSlice, .{ .iterate = true }) catch {
         currentError = "Path error";
         return;
@@ -111,8 +111,8 @@ pub fn update() void {
             for (folderSlice) |folder| {
                 var text = sling.imgui.components.format("{s}{s}", .{ dict.fileSelectorFolder, folder });
                 if (ig.igSelectable_Bool(text.ptr, false, ig.ImGuiSelectableFlags_None, .{})) {
-                    var currentPathSlice = std.mem.spanZ(&currentPath);
-                    var pathFragmentSlice = std.mem.spanZ(&folder);
+                    var currentPathSlice = std.mem.span(&currentPath);
+                    var pathFragmentSlice = std.mem.span(&folder);
                     var newCombined = std.fs.path.join(sling.mem.Allocator, &[_][]const u8{ currentPathSlice, pathFragmentSlice }) catch unreachable;
                     currentPath = std.mem.zeroes([512:0]u8);
                     for (newCombined) |char, i| {
@@ -121,14 +121,14 @@ pub fn update() void {
                     reQuery();
                 }
             }
-            var targetFile = std.mem.spanZ(&currentName);
+            var targetFile = std.mem.span(&currentName);
             for (filesSlice) |file| {
                 var text = sling.imgui.components.format("{s}{s}", .{ dict.fileSelectorFile, file });
-                var slice = std.mem.spanZ(&file);
+                var slice = std.mem.span(&file);
                 var selected = std.mem.eql(u8, slice, targetFile);
                 if (ig.igSelectable_Bool(text.ptr, selected, ig.ImGuiSelectableFlags_None, .{})) {
                     currentName = std.mem.zeroes([128:0]u8);
-                    var fileNameSlice = std.mem.spanZ(&file);
+                    var fileNameSlice = std.mem.span(&file);
                     for (fileNameSlice) |char, i| {
                         currentName[i] = char;
                     }
@@ -163,8 +163,8 @@ fn cb_load(path: []const u8) void {
 
 fn finish() void {
     if (pathCallback) |callback| {
-        var dir = std.mem.spanZ(&currentPath);
-        var name = std.mem.spanZ(&currentName);
+        var dir = std.mem.span(&currentPath);
+        var name = std.mem.span(&currentName);
         var full = std.fs.path.join(sling.mem.Allocator, &[_][]const u8{ dir, name }) catch unreachable;
         defer sling.mem.Allocator.free(full);
         callback(full[0..]);

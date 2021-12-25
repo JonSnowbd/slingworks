@@ -22,8 +22,8 @@ pub const Puck = struct {
     position: sling.math.Vec2 = .{},
     velocity: sling.math.Vec2 = .{},
     pub fn init(self: *Puck) void {
-        self.velocity.x = (rng.random.float(f32) - 0.5) * 450;
-        self.velocity.y = (rng.random.float(f32) - 0.5) * 450;
+        self.velocity.x = (rng.random().float(f32) - 0.5) * 450;
+        self.velocity.y = (rng.random().float(f32) - 0.5) * 450;
     }
     pub fn update(self: *Puck, scene: *sling.Scene) void {
         self.moveAndCollide(scene);

@@ -11,7 +11,7 @@ pub fn Generate(comptime Vertex: type, MaxQuads: usize) type {
         pub const VertexGroup = std.ArrayList(Vertex);
         pub const IndexGroup = std.ArrayList(u32);
         const Self = @This();
-        allocator: *std.mem.Allocator = std.heap.c_allocator,
+        allocator: std.mem.Allocator = std.heap.c_allocator,
         vertices: []Vertex,
         indices: []u32,
         // Bit inefficient, todo clean this up into pairs of texture, texture start index instead.
@@ -25,7 +25,7 @@ pub fn Generate(comptime Vertex: type, MaxQuads: usize) type {
         /// Where `shader` is an import of the sokol shaderc output, e.g. `@import("yourshader/shader.glsl.zig")`
         /// and program name is the name you are selecting. For example if your glsl file ends with `@program triangle vs fs`
         /// and you want to use the triangle pair, you pass in `triangle`.
-        pub fn init(allocator: *std.mem.Allocator, comptime shader: anytype, comptime programName: []const u8) Self {
+        pub fn init(allocator: std.mem.Allocator, comptime shader: anytype, comptime programName: []const u8) Self {
             // SHADER:
             sg.pushDebugGroup("Pipeline Initialization");
             comptime var prog: []const u8 = "";

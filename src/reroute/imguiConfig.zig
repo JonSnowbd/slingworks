@@ -74,22 +74,22 @@ const FontCreationConfig = struct {
         var h: c_int = undefined;
         var bpp: c_int = undefined;
         ig.ImFontAtlas_GetTexDataAsRGBA32(self.atlas, &pixels, &w, &h, &bpp);
-
         var imageDesc: sg.ImageDesc = .{};
         imageDesc.width = @intCast(i32, w);
         imageDesc.height = @intCast(i32, h);
         imageDesc.pixel_format = sg.PixelFormat.RGBA8;
-        imageDesc.wrap_u = sg.Wrap.CLAMP_TO_EDGE;
-        imageDesc.wrap_v = sg.Wrap.CLAMP_TO_EDGE;
+        // imageDesc.wrap_u = sg.Wrap.CLAMP_TO_EDGE;
+        // imageDesc.wrap_v = sg.Wrap.CLAMP_TO_EDGE;
         // We definitely want linear for oversampled fonts.
-        imageDesc.min_filter = if (self.nearestNeighbour) sg.Filter.NEAREST else sg.Filter.LINEAR;
-        imageDesc.mag_filter = if (self.nearestNeighbour) sg.Filter.NEAREST else sg.Filter.LINEAR;
-        imageDesc.label = "imgui_font";
-        imageDesc.data.subimage[0][0].ptr = pixels[0..@intCast(usize, w * h)].ptr;
+        // imageDesc.min_filter = if (self.nearestNeighbour) sg.Filter.NEAREST else sg.Filter.LINEAR;
+        // imageDesc.mag_filter = if (self.nearestNeighbour) sg.Filter.NEAREST else sg.Filter.LINEAR;
+        // imageDesc.label = "imgui_font";
+        imageDesc.data.subimage[0][0].ptr = pixels;
         imageDesc.data.subimage[0][0].size = @intCast(usize, w * h);
 
         var image = sg.makeImage(imageDesc);
-        self.atlas.*.TexID = @intToPtr(*c_void, image.id);
+
+        self.atlas.*.TexID = @intToPtr(*anyopaque, image.id);
 
         ig.ImFontAtlas_destroy(io.*.Fonts);
         io.*.Fonts = self.atlas;
