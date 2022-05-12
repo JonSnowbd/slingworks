@@ -34,7 +34,7 @@ inline fn convertTo(comptime T: type, value: anytype) T {
         .Float => {
             switch (@typeInfo(@TypeOf(T))) {
                 .Int => |destInt| {
-                    const conv = std.math.round(value);
+                    const conv = @round(value);
                     return @floatToInt(Int(destInt.signedness, destInt.bits), conv);
                 },
                 .Float => |destFloat| {
@@ -136,7 +136,7 @@ fn Fns(comptime Self: type, comptime Real: type, comptime axes: usize) type {
         pub fn round(this: Self) Self {
             var result: Self = undefined;
             inline for (@typeInfo(Self).Struct.fields) |field| {
-                @field(result, field.name) = std.math.round(@field(this, field.name));
+                @field(result, field.name) = @round(@field(this, field.name));
             }
             return result;
         }

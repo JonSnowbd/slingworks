@@ -82,19 +82,6 @@ drawCalls: usize = 0,
 whitePixelId: usize,
 
 pub fn init() Self {
-    // Create internal default pipeline
-    // var customPipeline = sg.PipelineDesc{};
-    // customPipeline.colors[0].write_mask = .RGB;
-    // customPipeline.colors[0].blend.enabled = true;
-    // customPipeline.colors[0].blend.src_factor_rgb = .SRC_ALPHA;
-    // customPipeline.colors[0].blend.dst_factor_rgb = .ONE_MINUS_SRC_ALPHA;
-    // customPipeline.depth = .{
-    //     .write_enabled = false,
-    //     .compare = .LESS_EQUAL,
-    // };
-    // customPipeline.index_type = .UINT16;
-    // customPipeline.label = "StandardSlingRenderer";
-    // customPipeline.cull_mode = sg.CullMode.DEFAULT;
     // Create image to represent a white pixel for primitives.
     var desc = sg.ImageDesc{
         .width = 1,
@@ -103,7 +90,6 @@ pub fn init() Self {
         .min_filter = sg.Filter.NEAREST,
         .mag_filter = sg.Filter.NEAREST,
     };
-    // desc.data.subimage[0][0] = sg.asRange([_]sling.math.Vec4{sling.math.Vec4.new(1.0, 1.0, 1.0, 1.0)});
     desc.data.subimage[0][0] = sg.asRange([_]u32{0xFFFFFFFF});
     var whitePix = sg.makeImage(desc);
     sling.logFmt("SLING: Uploaded image #{any} to the gpu. ({any}x{any})", .{ whitePix.id, desc.width, desc.height });
@@ -224,7 +210,7 @@ pub const RectangleConfig = struct {
     // internal utils for rendering
     inline fn solveRectangleCorners(angle: f32, position: sling.math.Vec2, radius: f32, col: sling.math.Vec4, innerVert: *Vert, outerVert: *Vert) void {
         const rad = angle * sling.math.DEG_2_RAD;
-        const inward = sling.math.Vec2.new(std.math.sin(rad), std.math.cos(rad)).scale(radius);
+        const inward = sling.math.Vec2.new(@sin(rad), @cos(rad)).scale(radius);
         innerVert.pos = position.add(inward);
         outerVert.pos = position.add(inward.scale(-1));
         innerVert.color = col;
@@ -299,5 +285,27 @@ pub fn rectangle(self: *Self, rect: sling.math.Rect, config: RectangleConfig) vo
             .color = config.bottomRightColorOverride orelse config.color,
         };
         self.rawQuad(config.space, config.depth, self.whitePixelId, .{ tl, tr, br, bl });
+    }
+}
+
+pub const CircleConfig = struct {
+    space: Space = .world,
+    depth: Depth = Depth.init(0),
+    /// If you set this away from null and above 0, the circle will become hollow.
+    thickness: ?f32 = null,
+    color: sling.math.Vec4 = sling.math.Vec4.new(1.0, 1.0, 1.0, 1.0),
+};
+pub fn circle(self: *Self, point: sling.math.Vec2, radius: f32, config: CircleConfig) void {
+    if(radius == 0.0) {
+        return;
+    }
+    _ = config;
+    const maxPoints: usize = @floatToInt(usize, radius/6.0)+10;
+    var i: usize = 0;
+    while(i < maxPoints): (i += 1) {
+        const completion: f32 = (@intToFloat(f32, i) / @intToFloat(f32, maxPoints)) * (std.math.pi*2.0);
+        const vec = sling.math.Vec2.new(@cos(completion),@sin(completion)).scale(radius);
+        const pos = vec.add(point);
+        rectangle(self, sling.math.Rect.new(pos.x-1, pos.y-1, 2, 2), .{});
     }
 }

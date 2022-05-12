@@ -21,18 +21,14 @@ pub const Puck = struct {
     var rng = std.rand.DefaultPrng.init(45178534);
     position: sling.math.Vec2 = .{},
     velocity: sling.math.Vec2 = .{},
+    rad: f32 = 10.0,
     pub fn init(self: *Puck) void {
         self.velocity.x = (rng.random().float(f32) - 0.5) * 450;
         self.velocity.y = (rng.random().float(f32) - 0.5) * 450;
     }
     pub fn update(self: *Puck, scene: *sling.Scene) void {
         self.moveAndCollide(scene);
-        var rect = sling.math.Rect{ .position = self.position, .size = .{ .x = 50, .y = 50 } };
-        var tex = sling.asset.ensure(sling.Texture, "Avatar.png");
-        sling.render.sprite(tex, rect, .{
-            .normalizedOrigin = .{ .x = 0.5, .y = 0.5 },
-            .color = sling.math.Vec4.new(1.0,0.0,0.0,1.0)
-        });
+        sling.render.circle(self.position, self.rad, .{});
     }
     fn moveAndCollide(self: *Puck, scene: *sling.Scene) void {
         var bounds = scene.is(Arena).?.bounds;

@@ -141,7 +141,7 @@ pub fn GenBuildData(comptime T: type) type {
 
             fn updateSingular(self: FnWrap, target: *T, scene: *sling.Scene) void {
                 if (self.canRun()) {
-                    inline for (std.meta.declarations(T)) |declField| {
+                    inline for (@typeInfo(T).Struct.decls) |declField| {
                         if (declField.is_pub) {
                             const fnTypeInfo = @typeInfo(@TypeOf(@field(T, declField.name)));
                             if (fnTypeInfo == .Fn and fnTypeInfo.Fn.args.len > 0) {
@@ -179,7 +179,7 @@ pub fn GenBuildData(comptime T: type) type {
             }
             fn updateArray(self: FnWrap, target: []T, scene: *sling.Scene) void {
                 if (self.canRun()) {
-                    inline for (std.meta.declarations(T)) |declField| {
+                    inline for (@typeInfo(T).Struct.decls) |declField| {
                         if (declField.is_pub) {
                             const fnTypeInfo = @typeInfo(@TypeOf(@field(T, declField.name)));
                             if (fnTypeInfo == .Fn and fnTypeInfo.Fn.args.len > 0) {
