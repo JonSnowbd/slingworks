@@ -26,9 +26,11 @@ pub const Puck = struct {
         self.velocity.x = (rng.random().float(f32) - 0.5) * 450;
         self.velocity.y = (rng.random().float(f32) - 0.5) * 450;
     }
-    pub fn update(self: *Puck, scene: *sling.Scene) void {
-        self.moveAndCollide(scene);
+    pub fn update(self: *Puck) void {
         sling.render.circle(self.position, self.rad, .{});
+    }
+    pub fn gameUpdate(self: *Puck, scene: *sling.Scene) void {
+        self.moveAndCollide(scene);
     }
     fn moveAndCollide(self: *Puck, scene: *sling.Scene) void {
         var bounds = scene.is(Arena).?.bounds;
@@ -45,6 +47,7 @@ pub const Puck = struct {
     pub fn slingIntegration() void {
         var config = sling.configure(Puck);
         config.updateMethod(.update, .both);
+        config.updateMethod(.gameUpdate, .gameOnly);
         config.initMethod(.init, .both);
     }
 };

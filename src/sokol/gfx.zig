@@ -1,5 +1,12 @@
 // machine generated, do not edit
 
+const builtin = @import("builtin");
+const meta = @import("std").meta;
+
+// helper function to convert a C string to a Zig string slice
+fn cStrToZig(c_str: [*c]const u8) [:0]const u8 {
+  return @import("std").mem.span(c_str);
+}
 // helper function to convert "anything" to a Range struct
 pub fn asRange(val: anytype) Range {
     const type_info = @typeInfo(@TypeOf(val));
@@ -16,7 +23,7 @@ pub fn asRange(val: anytype) Range {
         },
         else => {
             @compileError("Cannot convert to range!");
-        },
+        }
     }
 }
 
@@ -133,6 +140,7 @@ pub const PixelFormat = enum(i32) {
     ETC2_RGBA8,
     ETC2_RG11,
     ETC2_RG11SN,
+    RGB9E5,
     NUM,
 };
 pub const PixelformatInfo = extern struct {
@@ -284,7 +292,17 @@ pub const UniformType = enum(i32) {
     FLOAT2,
     FLOAT3,
     FLOAT4,
+    INT,
+    INT2,
+    INT3,
+    INT4,
     MAT4,
+    NUM,
+};
+pub const UniformLayout = enum(i32) {
+    DEFAULT,
+    NATIVE,
+    STD140,
     NUM,
 };
 pub const CullMode = enum(i32) {
@@ -378,7 +396,7 @@ pub const Action = enum(i32) {
 };
 pub const ColorAttachmentAction = extern struct {
     action: Action = .DEFAULT,
-    value: Color = .{},
+    value: Color = .{ },
 };
 pub const DepthAttachmentAction = extern struct {
     action: Action = .DEFAULT,
@@ -391,15 +409,15 @@ pub const StencilAttachmentAction = extern struct {
 pub const PassAction = extern struct {
     _start_canary: u32 = 0,
     colors: [4]ColorAttachmentAction = [_]ColorAttachmentAction{.{}} ** 4,
-    depth: DepthAttachmentAction = .{},
-    stencil: StencilAttachmentAction = .{},
+    depth: DepthAttachmentAction = .{ },
+    stencil: StencilAttachmentAction = .{ },
     _end_canary: u32 = 0,
 };
 pub const Bindings = extern struct {
     _start_canary: u32 = 0,
     vertex_buffers: [8]Buffer = [_]Buffer{.{}} ** 8,
     vertex_buffer_offsets: [8]i32 = [_]i32{0} ** 8,
-    index_buffer: Buffer = .{},
+    index_buffer: Buffer = .{ },
     index_buffer_offset: i32 = 0,
     vs_images: [12]Image = [_]Image{.{}} ** 12,
     fs_images: [12]Image = [_]Image{.{}} ** 12,
@@ -410,10 +428,10 @@ pub const BufferDesc = extern struct {
     size: usize = 0,
     type: BufferType = .DEFAULT,
     usage: Usage = .DEFAULT,
-    data: Range = .{},
+    data: Range = .{ },
     label: [*c]const u8 = null,
     gl_buffers: [2]u32 = [_]u32{0} ** 2,
-    mtl_buffers: [2]?*const anyopaque = [_]?*const anyopaque{null} ** 2,
+    mtl_buffers: [2]?*const anyopaque = [_]?*const anyopaque { null } ** 2,
     d3d11_buffer: ?*const anyopaque = null,
     wgpu_buffer: ?*const anyopaque = null,
     _end_canary: u32 = 0,
@@ -441,11 +459,11 @@ pub const ImageDesc = extern struct {
     max_anisotropy: u32 = 0,
     min_lod: f32 = 0.0,
     max_lod: f32 = 0.0,
-    data: ImageData = .{},
+    data: ImageData = .{ },
     label: [*c]const u8 = null,
     gl_textures: [2]u32 = [_]u32{0} ** 2,
     gl_texture_target: u32 = 0,
-    mtl_textures: [2]?*const anyopaque = [_]?*const anyopaque{null} ** 2,
+    mtl_textures: [2]?*const anyopaque = [_]?*const anyopaque { null } ** 2,
     d3d11_texture: ?*const anyopaque = null,
     d3d11_shader_resource_view: ?*const anyopaque = null,
     wgpu_texture: ?*const anyopaque = null,
@@ -463,6 +481,7 @@ pub const ShaderUniformDesc = extern struct {
 };
 pub const ShaderUniformBlockDesc = extern struct {
     size: usize = 0,
+    layout: UniformLayout = .DEFAULT,
     uniforms: [16]ShaderUniformDesc = [_]ShaderUniformDesc{.{}} ** 16,
 };
 pub const ShaderImageDesc = extern struct {
@@ -472,7 +491,7 @@ pub const ShaderImageDesc = extern struct {
 };
 pub const ShaderStageDesc = extern struct {
     source: [*c]const u8 = null,
-    bytecode: Range = .{},
+    bytecode: Range = .{ },
     entry: [*c]const u8 = null,
     d3d11_target: [*c]const u8 = null,
     uniform_blocks: [4]ShaderUniformBlockDesc = [_]ShaderUniformBlockDesc{.{}} ** 4,
@@ -481,8 +500,8 @@ pub const ShaderStageDesc = extern struct {
 pub const ShaderDesc = extern struct {
     _start_canary: u32 = 0,
     attrs: [16]ShaderAttrDesc = [_]ShaderAttrDesc{.{}} ** 16,
-    vs: ShaderStageDesc = .{},
-    fs: ShaderStageDesc = .{},
+    vs: ShaderStageDesc = .{ },
+    fs: ShaderStageDesc = .{ },
     label: [*c]const u8 = null,
     _end_canary: u32 = 0,
 };
@@ -510,8 +529,8 @@ pub const StencilFaceState = extern struct {
 };
 pub const StencilState = extern struct {
     enabled: bool = false,
-    front: StencilFaceState = .{},
-    back: StencilFaceState = .{},
+    front: StencilFaceState = .{ },
+    back: StencilFaceState = .{ },
     read_mask: u8 = 0,
     write_mask: u8 = 0,
     ref: u8 = 0,
@@ -536,14 +555,14 @@ pub const BlendState = extern struct {
 pub const ColorState = extern struct {
     pixel_format: PixelFormat = .DEFAULT,
     write_mask: ColorMask = .DEFAULT,
-    blend: BlendState = .{},
+    blend: BlendState = .{ },
 };
 pub const PipelineDesc = extern struct {
     _start_canary: u32 = 0,
-    shader: Shader = .{},
-    layout: LayoutDesc = .{},
-    depth: DepthState = .{},
-    stencil: StencilState = .{},
+    shader: Shader = .{ },
+    layout: LayoutDesc = .{ },
+    depth: DepthState = .{ },
+    stencil: StencilState = .{ },
     color_count: i32 = 0,
     colors: [4]ColorState = [_]ColorState{.{}} ** 4,
     primitive_type: PrimitiveType = .DEFAULT,
@@ -551,20 +570,20 @@ pub const PipelineDesc = extern struct {
     cull_mode: CullMode = .DEFAULT,
     face_winding: FaceWinding = .DEFAULT,
     sample_count: i32 = 0,
-    blend_color: Color = .{},
+    blend_color: Color = .{ },
     alpha_to_coverage_enabled: bool = false,
     label: [*c]const u8 = null,
     _end_canary: u32 = 0,
 };
 pub const PassAttachmentDesc = extern struct {
-    image: Image = .{},
+    image: Image = .{ },
     mip_level: i32 = 0,
     slice: i32 = 0,
 };
 pub const PassDesc = extern struct {
     _start_canary: u32 = 0,
     color_attachments: [4]PassAttachmentDesc = [_]PassAttachmentDesc{.{}} ** 4,
-    depth_stencil_attachment: PassAttachmentDesc = .{},
+    depth_stencil_attachment: PassAttachmentDesc = .{ },
     label: [*c]const u8 = null,
     _end_canary: u32 = 0,
 };
@@ -574,7 +593,7 @@ pub const SlotInfo = extern struct {
     ctx_id: u32 = 0,
 };
 pub const BufferInfo = extern struct {
-    slot: SlotInfo = .{},
+    slot: SlotInfo = .{ },
     update_frame_index: u32 = 0,
     append_frame_index: u32 = 0,
     append_pos: i32 = 0,
@@ -583,7 +602,7 @@ pub const BufferInfo = extern struct {
     active_slot: i32 = 0,
 };
 pub const ImageInfo = extern struct {
-    slot: SlotInfo = .{},
+    slot: SlotInfo = .{ },
     upd_frame_index: u32 = 0,
     num_slots: i32 = 0,
     active_slot: i32 = 0,
@@ -591,52 +610,65 @@ pub const ImageInfo = extern struct {
     height: i32 = 0,
 };
 pub const ShaderInfo = extern struct {
-    slot: SlotInfo = .{},
+    slot: SlotInfo = .{ },
 };
 pub const PipelineInfo = extern struct {
-    slot: SlotInfo = .{},
+    slot: SlotInfo = .{ },
 };
 pub const PassInfo = extern struct {
-    slot: SlotInfo = .{},
+    slot: SlotInfo = .{ },
 };
 pub const GlContextDesc = extern struct {
     force_gles2: bool = false,
 };
 pub const MetalContextDesc = extern struct {
     device: ?*const anyopaque = null,
-    renderpass_descriptor_cb: ?fn () callconv(.C) ?*const anyopaque = null,
-    renderpass_descriptor_userdata_cb: ?fn (?*anyopaque) callconv(.C) ?*const anyopaque = null,
-    drawable_cb: ?fn () callconv(.C) ?*const anyopaque = null,
-    drawable_userdata_cb: ?fn (?*anyopaque) callconv(.C) ?*const anyopaque = null,
+    renderpass_descriptor_cb: ?*const fn() callconv(.C) ?*const anyopaque = null,
+    renderpass_descriptor_userdata_cb: ?*const fn(?*anyopaque) callconv(.C) ?*const anyopaque = null,
+    drawable_cb: ?*const fn() callconv(.C) ?*const anyopaque = null,
+    drawable_userdata_cb: ?*const fn(?*anyopaque) callconv(.C) ?*const anyopaque = null,
     user_data: ?*anyopaque = null,
 };
 pub const D3d11ContextDesc = extern struct {
     device: ?*const anyopaque = null,
     device_context: ?*const anyopaque = null,
-    render_target_view_cb: ?fn () callconv(.C) ?*const anyopaque = null,
-    render_target_view_userdata_cb: ?fn (?*anyopaque) callconv(.C) ?*const anyopaque = null,
-    depth_stencil_view_cb: ?fn () callconv(.C) ?*const anyopaque = null,
-    depth_stencil_view_userdata_cb: ?fn (?*anyopaque) callconv(.C) ?*const anyopaque = null,
+    render_target_view_cb: ?*const fn() callconv(.C) ?*const anyopaque = null,
+    render_target_view_userdata_cb: ?*const fn(?*anyopaque) callconv(.C) ?*const anyopaque = null,
+    depth_stencil_view_cb: ?*const fn() callconv(.C) ?*const anyopaque = null,
+    depth_stencil_view_userdata_cb: ?*const fn(?*anyopaque) callconv(.C) ?*const anyopaque = null,
     user_data: ?*anyopaque = null,
 };
 pub const WgpuContextDesc = extern struct {
     device: ?*const anyopaque = null,
-    render_view_cb: ?fn () callconv(.C) ?*const anyopaque = null,
-    render_view_userdata_cb: ?fn (?*anyopaque) callconv(.C) ?*const anyopaque = null,
-    resolve_view_cb: ?fn () callconv(.C) ?*const anyopaque = null,
-    resolve_view_userdata_cb: ?fn (?*anyopaque) callconv(.C) ?*const anyopaque = null,
-    depth_stencil_view_cb: ?fn () callconv(.C) ?*const anyopaque = null,
-    depth_stencil_view_userdata_cb: ?fn (?*anyopaque) callconv(.C) ?*const anyopaque = null,
+    render_view_cb: ?*const fn() callconv(.C) ?*const anyopaque = null,
+    render_view_userdata_cb: ?*const fn(?*anyopaque) callconv(.C) ?*const anyopaque = null,
+    resolve_view_cb: ?*const fn() callconv(.C) ?*const anyopaque = null,
+    resolve_view_userdata_cb: ?*const fn(?*anyopaque) callconv(.C) ?*const anyopaque = null,
+    depth_stencil_view_cb: ?*const fn() callconv(.C) ?*const anyopaque = null,
+    depth_stencil_view_userdata_cb: ?*const fn(?*anyopaque) callconv(.C) ?*const anyopaque = null,
     user_data: ?*anyopaque = null,
 };
 pub const ContextDesc = extern struct {
     color_format: i32 = 0,
     depth_format: i32 = 0,
     sample_count: i32 = 0,
-    gl: GlContextDesc = .{},
-    metal: MetalContextDesc = .{},
-    d3d11: D3d11ContextDesc = .{},
-    wgpu: WgpuContextDesc = .{},
+    gl: GlContextDesc = .{ },
+    metal: MetalContextDesc = .{ },
+    d3d11: D3d11ContextDesc = .{ },
+    wgpu: WgpuContextDesc = .{ },
+};
+pub const CommitListener = extern struct {
+    func: ?*const fn(?*anyopaque) callconv(.C) void = null,
+    user_data: ?*anyopaque = null,
+};
+pub const Allocator = extern struct {
+    alloc: ?*const fn(usize, ?*anyopaque) callconv(.C) ?*anyopaque = null,
+    free: ?*const fn(?*anyopaque, ?*anyopaque) callconv(.C) void = null,
+    user_data: ?*anyopaque = null,
+};
+pub const Logger = extern struct {
+    log_cb: ?*const fn([*c]const u8, ?*anyopaque) callconv(.C) void = null,
+    user_data: ?*anyopaque = null,
 };
 pub const Desc = extern struct {
     _start_canary: u32 = 0,
@@ -649,342 +681,358 @@ pub const Desc = extern struct {
     uniform_buffer_size: i32 = 0,
     staging_buffer_size: i32 = 0,
     sampler_cache_size: i32 = 0,
-    context: ContextDesc = .{},
+    max_commit_listeners: i32 = 0,
+    disable_validation: bool = false,
+    allocator: Allocator = .{ },
+    logger: Logger = .{ },
+    context: ContextDesc = .{ },
     _end_canary: u32 = 0,
 };
-extern fn sg_setup([*c]const Desc) void;
+pub extern fn sg_setup([*c]const Desc) void;
 pub fn setup(desc: Desc) void {
     sg_setup(&desc);
 }
-extern fn sg_shutdown() void;
+pub extern fn sg_shutdown() void;
 pub fn shutdown() void {
     sg_shutdown();
 }
-extern fn sg_isvalid() bool;
+pub extern fn sg_isvalid() bool;
 pub fn isvalid() bool {
     return sg_isvalid();
 }
-extern fn sg_reset_state_cache() void;
+pub extern fn sg_reset_state_cache() void;
 pub fn resetStateCache() void {
     sg_reset_state_cache();
 }
-extern fn sg_push_debug_group([*c]const u8) void;
+pub extern fn sg_push_debug_group([*c]const u8) void;
 pub fn pushDebugGroup(name: [:0]const u8) void {
-    sg_push_debug_group(@ptrCast([*c]const u8, name));
+    sg_push_debug_group(@ptrCast([*c]const u8,name));
 }
-extern fn sg_pop_debug_group() void;
+pub extern fn sg_pop_debug_group() void;
 pub fn popDebugGroup() void {
     sg_pop_debug_group();
 }
-extern fn sg_make_buffer([*c]const BufferDesc) Buffer;
+pub extern fn sg_add_commit_listener(CommitListener) bool;
+pub fn addCommitListener(listener: CommitListener) bool {
+    return sg_add_commit_listener(listener);
+}
+pub extern fn sg_remove_commit_listener(CommitListener) bool;
+pub fn removeCommitListener(listener: CommitListener) bool {
+    return sg_remove_commit_listener(listener);
+}
+pub extern fn sg_make_buffer([*c]const BufferDesc) Buffer;
 pub fn makeBuffer(desc: BufferDesc) Buffer {
     return sg_make_buffer(&desc);
 }
-extern fn sg_make_image([*c]const ImageDesc) Image;
+pub extern fn sg_make_image([*c]const ImageDesc) Image;
 pub fn makeImage(desc: ImageDesc) Image {
     return sg_make_image(&desc);
 }
-extern fn sg_make_shader([*c]const ShaderDesc) Shader;
+pub extern fn sg_make_shader([*c]const ShaderDesc) Shader;
 pub fn makeShader(desc: ShaderDesc) Shader {
     return sg_make_shader(&desc);
 }
-extern fn sg_make_pipeline([*c]const PipelineDesc) Pipeline;
+pub extern fn sg_make_pipeline([*c]const PipelineDesc) Pipeline;
 pub fn makePipeline(desc: PipelineDesc) Pipeline {
     return sg_make_pipeline(&desc);
 }
-extern fn sg_make_pass([*c]const PassDesc) Pass;
+pub extern fn sg_make_pass([*c]const PassDesc) Pass;
 pub fn makePass(desc: PassDesc) Pass {
     return sg_make_pass(&desc);
 }
-extern fn sg_destroy_buffer(Buffer) void;
+pub extern fn sg_destroy_buffer(Buffer) void;
 pub fn destroyBuffer(buf: Buffer) void {
     sg_destroy_buffer(buf);
 }
-extern fn sg_destroy_image(Image) void;
+pub extern fn sg_destroy_image(Image) void;
 pub fn destroyImage(img: Image) void {
     sg_destroy_image(img);
 }
-extern fn sg_destroy_shader(Shader) void;
+pub extern fn sg_destroy_shader(Shader) void;
 pub fn destroyShader(shd: Shader) void {
     sg_destroy_shader(shd);
 }
-extern fn sg_destroy_pipeline(Pipeline) void;
+pub extern fn sg_destroy_pipeline(Pipeline) void;
 pub fn destroyPipeline(pip: Pipeline) void {
     sg_destroy_pipeline(pip);
 }
-extern fn sg_destroy_pass(Pass) void;
+pub extern fn sg_destroy_pass(Pass) void;
 pub fn destroyPass(pass: Pass) void {
     sg_destroy_pass(pass);
 }
-extern fn sg_update_buffer(Buffer, [*c]const Range) void;
+pub extern fn sg_update_buffer(Buffer, [*c]const Range) void;
 pub fn updateBuffer(buf: Buffer, data: Range) void {
     sg_update_buffer(buf, &data);
 }
-extern fn sg_update_image(Image, [*c]const ImageData) void;
+pub extern fn sg_update_image(Image, [*c]const ImageData) void;
 pub fn updateImage(img: Image, data: ImageData) void {
     sg_update_image(img, &data);
 }
-extern fn sg_append_buffer(Buffer, [*c]const Range) i32;
+pub extern fn sg_append_buffer(Buffer, [*c]const Range) i32;
 pub fn appendBuffer(buf: Buffer, data: Range) i32 {
     return sg_append_buffer(buf, &data);
 }
-extern fn sg_query_buffer_overflow(Buffer) bool;
+pub extern fn sg_query_buffer_overflow(Buffer) bool;
 pub fn queryBufferOverflow(buf: Buffer) bool {
     return sg_query_buffer_overflow(buf);
 }
-extern fn sg_begin_default_pass([*c]const PassAction, i32, i32) void;
+pub extern fn sg_query_buffer_will_overflow(Buffer, usize) bool;
+pub fn queryBufferWillOverflow(buf: Buffer, size: usize) bool {
+    return sg_query_buffer_will_overflow(buf, size);
+}
+pub extern fn sg_begin_default_pass([*c]const PassAction, i32, i32) void;
 pub fn beginDefaultPass(pass_action: PassAction, width: i32, height: i32) void {
     sg_begin_default_pass(&pass_action, width, height);
 }
-extern fn sg_begin_default_passf([*c]const PassAction, f32, f32) void;
+pub extern fn sg_begin_default_passf([*c]const PassAction, f32, f32) void;
 pub fn beginDefaultPassf(pass_action: PassAction, width: f32, height: f32) void {
     sg_begin_default_passf(&pass_action, width, height);
 }
-extern fn sg_begin_pass(Pass, [*c]const PassAction) void;
+pub extern fn sg_begin_pass(Pass, [*c]const PassAction) void;
 pub fn beginPass(pass: Pass, pass_action: PassAction) void {
     sg_begin_pass(pass, &pass_action);
 }
-extern fn sg_apply_viewport(i32, i32, i32, i32, bool) void;
+pub extern fn sg_apply_viewport(i32, i32, i32, i32, bool) void;
 pub fn applyViewport(x: i32, y: i32, width: i32, height: i32, origin_top_left: bool) void {
     sg_apply_viewport(x, y, width, height, origin_top_left);
 }
-extern fn sg_apply_viewportf(f32, f32, f32, f32, bool) void;
+pub extern fn sg_apply_viewportf(f32, f32, f32, f32, bool) void;
 pub fn applyViewportf(x: f32, y: f32, width: f32, height: f32, origin_top_left: bool) void {
     sg_apply_viewportf(x, y, width, height, origin_top_left);
 }
-extern fn sg_apply_scissor_rect(i32, i32, i32, i32, bool) void;
+pub extern fn sg_apply_scissor_rect(i32, i32, i32, i32, bool) void;
 pub fn applyScissorRect(x: i32, y: i32, width: i32, height: i32, origin_top_left: bool) void {
     sg_apply_scissor_rect(x, y, width, height, origin_top_left);
 }
-extern fn sg_apply_scissor_rectf(f32, f32, f32, f32, bool) void;
+pub extern fn sg_apply_scissor_rectf(f32, f32, f32, f32, bool) void;
 pub fn applyScissorRectf(x: f32, y: f32, width: f32, height: f32, origin_top_left: bool) void {
     sg_apply_scissor_rectf(x, y, width, height, origin_top_left);
 }
-extern fn sg_apply_pipeline(Pipeline) void;
+pub extern fn sg_apply_pipeline(Pipeline) void;
 pub fn applyPipeline(pip: Pipeline) void {
     sg_apply_pipeline(pip);
 }
-extern fn sg_apply_bindings([*c]const Bindings) void;
+pub extern fn sg_apply_bindings([*c]const Bindings) void;
 pub fn applyBindings(bindings: Bindings) void {
     sg_apply_bindings(&bindings);
 }
-extern fn sg_apply_uniforms(ShaderStage, u32, [*c]const Range) void;
+pub extern fn sg_apply_uniforms(ShaderStage, u32, [*c]const Range) void;
 pub fn applyUniforms(stage: ShaderStage, ub_index: u32, data: Range) void {
     sg_apply_uniforms(stage, ub_index, &data);
 }
-extern fn sg_draw(u32, u32, u32) void;
+pub extern fn sg_draw(u32, u32, u32) void;
 pub fn draw(base_element: u32, num_elements: u32, num_instances: u32) void {
     sg_draw(base_element, num_elements, num_instances);
 }
-extern fn sg_end_pass() void;
+pub extern fn sg_end_pass() void;
 pub fn endPass() void {
     sg_end_pass();
 }
-extern fn sg_commit() void;
+pub extern fn sg_commit() void;
 pub fn commit() void {
     sg_commit();
 }
-extern fn sg_query_desc() Desc;
+pub extern fn sg_query_desc() Desc;
 pub fn queryDesc() Desc {
     return sg_query_desc();
 }
-extern fn sg_query_backend() Backend;
+pub extern fn sg_query_backend() Backend;
 pub fn queryBackend() Backend {
     return sg_query_backend();
 }
-extern fn sg_query_features() Features;
+pub extern fn sg_query_features() Features;
 pub fn queryFeatures() Features {
     return sg_query_features();
 }
-extern fn sg_query_limits() Limits;
+pub extern fn sg_query_limits() Limits;
 pub fn queryLimits() Limits {
     return sg_query_limits();
 }
-extern fn sg_query_pixelformat(PixelFormat) PixelformatInfo;
+pub extern fn sg_query_pixelformat(PixelFormat) PixelformatInfo;
 pub fn queryPixelformat(fmt: PixelFormat) PixelformatInfo {
     return sg_query_pixelformat(fmt);
 }
-extern fn sg_query_buffer_state(Buffer) ResourceState;
+pub extern fn sg_query_buffer_state(Buffer) ResourceState;
 pub fn queryBufferState(buf: Buffer) ResourceState {
     return sg_query_buffer_state(buf);
 }
-extern fn sg_query_image_state(Image) ResourceState;
+pub extern fn sg_query_image_state(Image) ResourceState;
 pub fn queryImageState(img: Image) ResourceState {
     return sg_query_image_state(img);
 }
-extern fn sg_query_shader_state(Shader) ResourceState;
+pub extern fn sg_query_shader_state(Shader) ResourceState;
 pub fn queryShaderState(shd: Shader) ResourceState {
     return sg_query_shader_state(shd);
 }
-extern fn sg_query_pipeline_state(Pipeline) ResourceState;
+pub extern fn sg_query_pipeline_state(Pipeline) ResourceState;
 pub fn queryPipelineState(pip: Pipeline) ResourceState {
     return sg_query_pipeline_state(pip);
 }
-extern fn sg_query_pass_state(Pass) ResourceState;
+pub extern fn sg_query_pass_state(Pass) ResourceState;
 pub fn queryPassState(pass: Pass) ResourceState {
     return sg_query_pass_state(pass);
 }
-extern fn sg_query_buffer_info(Buffer) BufferInfo;
+pub extern fn sg_query_buffer_info(Buffer) BufferInfo;
 pub fn queryBufferInfo(buf: Buffer) BufferInfo {
     return sg_query_buffer_info(buf);
 }
-extern fn sg_query_image_info(Image) ImageInfo;
+pub extern fn sg_query_image_info(Image) ImageInfo;
 pub fn queryImageInfo(img: Image) ImageInfo {
     return sg_query_image_info(img);
 }
-extern fn sg_query_shader_info(Shader) ShaderInfo;
+pub extern fn sg_query_shader_info(Shader) ShaderInfo;
 pub fn queryShaderInfo(shd: Shader) ShaderInfo {
     return sg_query_shader_info(shd);
 }
-extern fn sg_query_pipeline_info(Pipeline) PipelineInfo;
+pub extern fn sg_query_pipeline_info(Pipeline) PipelineInfo;
 pub fn queryPipelineInfo(pip: Pipeline) PipelineInfo {
     return sg_query_pipeline_info(pip);
 }
-extern fn sg_query_pass_info(Pass) PassInfo;
+pub extern fn sg_query_pass_info(Pass) PassInfo;
 pub fn queryPassInfo(pass: Pass) PassInfo {
     return sg_query_pass_info(pass);
 }
-extern fn sg_query_buffer_defaults([*c]const BufferDesc) BufferDesc;
+pub extern fn sg_query_buffer_defaults([*c]const BufferDesc) BufferDesc;
 pub fn queryBufferDefaults(desc: BufferDesc) BufferDesc {
     return sg_query_buffer_defaults(&desc);
 }
-extern fn sg_query_image_defaults([*c]const ImageDesc) ImageDesc;
+pub extern fn sg_query_image_defaults([*c]const ImageDesc) ImageDesc;
 pub fn queryImageDefaults(desc: ImageDesc) ImageDesc {
     return sg_query_image_defaults(&desc);
 }
-extern fn sg_query_shader_defaults([*c]const ShaderDesc) ShaderDesc;
+pub extern fn sg_query_shader_defaults([*c]const ShaderDesc) ShaderDesc;
 pub fn queryShaderDefaults(desc: ShaderDesc) ShaderDesc {
     return sg_query_shader_defaults(&desc);
 }
-extern fn sg_query_pipeline_defaults([*c]const PipelineDesc) PipelineDesc;
+pub extern fn sg_query_pipeline_defaults([*c]const PipelineDesc) PipelineDesc;
 pub fn queryPipelineDefaults(desc: PipelineDesc) PipelineDesc {
     return sg_query_pipeline_defaults(&desc);
 }
-extern fn sg_query_pass_defaults([*c]const PassDesc) PassDesc;
+pub extern fn sg_query_pass_defaults([*c]const PassDesc) PassDesc;
 pub fn queryPassDefaults(desc: PassDesc) PassDesc {
     return sg_query_pass_defaults(&desc);
 }
-extern fn sg_alloc_buffer() Buffer;
+pub extern fn sg_alloc_buffer() Buffer;
 pub fn allocBuffer() Buffer {
     return sg_alloc_buffer();
 }
-extern fn sg_alloc_image() Image;
+pub extern fn sg_alloc_image() Image;
 pub fn allocImage() Image {
     return sg_alloc_image();
 }
-extern fn sg_alloc_shader() Shader;
+pub extern fn sg_alloc_shader() Shader;
 pub fn allocShader() Shader {
     return sg_alloc_shader();
 }
-extern fn sg_alloc_pipeline() Pipeline;
+pub extern fn sg_alloc_pipeline() Pipeline;
 pub fn allocPipeline() Pipeline {
     return sg_alloc_pipeline();
 }
-extern fn sg_alloc_pass() Pass;
+pub extern fn sg_alloc_pass() Pass;
 pub fn allocPass() Pass {
     return sg_alloc_pass();
 }
-extern fn sg_dealloc_buffer(Buffer) void;
-pub fn deallocBuffer(buf_id: Buffer) void {
-    sg_dealloc_buffer(buf_id);
+pub extern fn sg_dealloc_buffer(Buffer) void;
+pub fn deallocBuffer(buf: Buffer) void {
+    sg_dealloc_buffer(buf);
 }
-extern fn sg_dealloc_image(Image) void;
-pub fn deallocImage(img_id: Image) void {
-    sg_dealloc_image(img_id);
+pub extern fn sg_dealloc_image(Image) void;
+pub fn deallocImage(img: Image) void {
+    sg_dealloc_image(img);
 }
-extern fn sg_dealloc_shader(Shader) void;
-pub fn deallocShader(shd_id: Shader) void {
-    sg_dealloc_shader(shd_id);
+pub extern fn sg_dealloc_shader(Shader) void;
+pub fn deallocShader(shd: Shader) void {
+    sg_dealloc_shader(shd);
 }
-extern fn sg_dealloc_pipeline(Pipeline) void;
-pub fn deallocPipeline(pip_id: Pipeline) void {
-    sg_dealloc_pipeline(pip_id);
+pub extern fn sg_dealloc_pipeline(Pipeline) void;
+pub fn deallocPipeline(pip: Pipeline) void {
+    sg_dealloc_pipeline(pip);
 }
-extern fn sg_dealloc_pass(Pass) void;
-pub fn deallocPass(pass_id: Pass) void {
-    sg_dealloc_pass(pass_id);
+pub extern fn sg_dealloc_pass(Pass) void;
+pub fn deallocPass(pass: Pass) void {
+    sg_dealloc_pass(pass);
 }
-extern fn sg_init_buffer(Buffer, [*c]const BufferDesc) void;
-pub fn initBuffer(buf_id: Buffer, desc: BufferDesc) void {
-    sg_init_buffer(buf_id, &desc);
+pub extern fn sg_init_buffer(Buffer, [*c]const BufferDesc) void;
+pub fn initBuffer(buf: Buffer, desc: BufferDesc) void {
+    sg_init_buffer(buf, &desc);
 }
-extern fn sg_init_image(Image, [*c]const ImageDesc) void;
-pub fn initImage(img_id: Image, desc: ImageDesc) void {
-    sg_init_image(img_id, &desc);
+pub extern fn sg_init_image(Image, [*c]const ImageDesc) void;
+pub fn initImage(img: Image, desc: ImageDesc) void {
+    sg_init_image(img, &desc);
 }
-extern fn sg_init_shader(Shader, [*c]const ShaderDesc) void;
-pub fn initShader(shd_id: Shader, desc: ShaderDesc) void {
-    sg_init_shader(shd_id, &desc);
+pub extern fn sg_init_shader(Shader, [*c]const ShaderDesc) void;
+pub fn initShader(shd: Shader, desc: ShaderDesc) void {
+    sg_init_shader(shd, &desc);
 }
-extern fn sg_init_pipeline(Pipeline, [*c]const PipelineDesc) void;
-pub fn initPipeline(pip_id: Pipeline, desc: PipelineDesc) void {
-    sg_init_pipeline(pip_id, &desc);
+pub extern fn sg_init_pipeline(Pipeline, [*c]const PipelineDesc) void;
+pub fn initPipeline(pip: Pipeline, desc: PipelineDesc) void {
+    sg_init_pipeline(pip, &desc);
 }
-extern fn sg_init_pass(Pass, [*c]const PassDesc) void;
-pub fn initPass(pass_id: Pass, desc: PassDesc) void {
-    sg_init_pass(pass_id, &desc);
+pub extern fn sg_init_pass(Pass, [*c]const PassDesc) void;
+pub fn initPass(pass: Pass, desc: PassDesc) void {
+    sg_init_pass(pass, &desc);
 }
-extern fn sg_uninit_buffer(Buffer) bool;
-pub fn uninitBuffer(buf_id: Buffer) bool {
-    return sg_uninit_buffer(buf_id);
+pub extern fn sg_uninit_buffer(Buffer) void;
+pub fn uninitBuffer(buf: Buffer) void {
+    sg_uninit_buffer(buf);
 }
-extern fn sg_uninit_image(Image) bool;
-pub fn uninitImage(img_id: Image) bool {
-    return sg_uninit_image(img_id);
+pub extern fn sg_uninit_image(Image) void;
+pub fn uninitImage(img: Image) void {
+    sg_uninit_image(img);
 }
-extern fn sg_uninit_shader(Shader) bool;
-pub fn uninitShader(shd_id: Shader) bool {
-    return sg_uninit_shader(shd_id);
+pub extern fn sg_uninit_shader(Shader) void;
+pub fn uninitShader(shd: Shader) void {
+    sg_uninit_shader(shd);
 }
-extern fn sg_uninit_pipeline(Pipeline) bool;
-pub fn uninitPipeline(pip_id: Pipeline) bool {
-    return sg_uninit_pipeline(pip_id);
+pub extern fn sg_uninit_pipeline(Pipeline) void;
+pub fn uninitPipeline(pip: Pipeline) void {
+    sg_uninit_pipeline(pip);
 }
-extern fn sg_uninit_pass(Pass) bool;
-pub fn uninitPass(pass_id: Pass) bool {
-    return sg_uninit_pass(pass_id);
+pub extern fn sg_uninit_pass(Pass) void;
+pub fn uninitPass(pass: Pass) void {
+    sg_uninit_pass(pass);
 }
-extern fn sg_fail_buffer(Buffer) void;
-pub fn failBuffer(buf_id: Buffer) void {
-    sg_fail_buffer(buf_id);
+pub extern fn sg_fail_buffer(Buffer) void;
+pub fn failBuffer(buf: Buffer) void {
+    sg_fail_buffer(buf);
 }
-extern fn sg_fail_image(Image) void;
-pub fn failImage(img_id: Image) void {
-    sg_fail_image(img_id);
+pub extern fn sg_fail_image(Image) void;
+pub fn failImage(img: Image) void {
+    sg_fail_image(img);
 }
-extern fn sg_fail_shader(Shader) void;
-pub fn failShader(shd_id: Shader) void {
-    sg_fail_shader(shd_id);
+pub extern fn sg_fail_shader(Shader) void;
+pub fn failShader(shd: Shader) void {
+    sg_fail_shader(shd);
 }
-extern fn sg_fail_pipeline(Pipeline) void;
-pub fn failPipeline(pip_id: Pipeline) void {
-    sg_fail_pipeline(pip_id);
+pub extern fn sg_fail_pipeline(Pipeline) void;
+pub fn failPipeline(pip: Pipeline) void {
+    sg_fail_pipeline(pip);
 }
-extern fn sg_fail_pass(Pass) void;
-pub fn failPass(pass_id: Pass) void {
-    sg_fail_pass(pass_id);
+pub extern fn sg_fail_pass(Pass) void;
+pub fn failPass(pass: Pass) void {
+    sg_fail_pass(pass);
 }
-extern fn sg_setup_context() Context;
+pub extern fn sg_setup_context() Context;
 pub fn setupContext() Context {
     return sg_setup_context();
 }
-extern fn sg_activate_context(Context) void;
+pub extern fn sg_activate_context(Context) void;
 pub fn activateContext(ctx_id: Context) void {
     sg_activate_context(ctx_id);
 }
-extern fn sg_discard_context(Context) void;
+pub extern fn sg_discard_context(Context) void;
 pub fn discardContext(ctx_id: Context) void {
     sg_discard_context(ctx_id);
 }
-extern fn sg_d3d11_device() ?*const anyopaque;
+pub extern fn sg_d3d11_device() ?*const anyopaque;
 pub fn d3d11Device() ?*const anyopaque {
     return sg_d3d11_device();
 }
-extern fn sg_mtl_device() ?*const anyopaque;
+pub extern fn sg_mtl_device() ?*const anyopaque;
 pub fn mtlDevice() ?*const anyopaque {
     return sg_mtl_device();
 }
-extern fn sg_mtl_render_command_encoder() ?*const anyopaque;
+pub extern fn sg_mtl_render_command_encoder() ?*const anyopaque;
 pub fn mtlRenderCommandEncoder() ?*const anyopaque {
     return sg_mtl_render_command_encoder();
 }

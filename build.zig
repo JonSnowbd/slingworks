@@ -3,7 +3,7 @@ const fs = std.fs;
 
 fn getRelativePath() []const u8 {
     comptime var src: std.builtin.SourceLocation = @src();
-    return std.fs.path.dirname(src.file).? ++ std.fs.path.sep_str;
+    return comptime std.fs.path.dirname(src.file).? ++ std.fs.path.sep_str;
 }
 
 pub const addGameContent = @import("build_util.zig").addBinaryContent;
@@ -42,8 +42,19 @@ pub fn link(exe: *std.build.LibExeObjStep) void {
     linkImGui(exe);
     // Link stb_image
     exe.linkLibC();
-    exe.addCSourceFile(getRelativePath() ++ "src/deps/stb_image.c", &[_][]const u8{});
-    exe.addPackagePath("sling", getRelativePath() ++ "src/main.zig");
+    exe.addCSourceFile(comptime getRelativePath() ++ "src/deps/stb_image.c", &[_][]const u8{});
+
+    var skPkg: std.build.Pkg = .{
+        .name = "sokol",
+        .source = .{.path = comptime getRelativePath() ++ "src/sokol/sokol.zig"}
+    };
+    var slPkg: std.build.Pkg = .{
+        .name = "sling",
+        .source = .{.path = comptime getRelativePath() ++ "src/main.zig"},
+        .dependencies = &[_]std.build.Pkg{skPkg}
+    };
+    exe.addPackage(skPkg);
+    exe.addPackage(slPkg);
 }
 
 fn linkSokol(exe: *std.build.LibExeObjStep) void {
@@ -60,7 +71,14 @@ fn linkSokol(exe: *std.build.LibExeObjStep) void {
     };
     var flagContainer = std.ArrayList([]const u8).init(std.heap.page_allocator);
     flagContainer.append("-DIMPL") catch unreachable;
-    flagContainer.append("-O2") catch unreachable;
+
+    if(b.is_release) {
+        flagContainer.append("-O2") catch unreachable;
+    } else {
+
+        flagContainer.append("-DSOKOL_DEBUG") catch unreachable;
+        flagContainer.append("-g") catch unreachable;
+    }
     if (target.isDarwin()) {
         b.env_map.put("ZIG_SYSTEM_LINKER_HACK", "1") catch unreachable;
         flagContainer.append("-ObjC") catch unreachable;
@@ -75,6 +93,7 @@ fn linkSokol(exe: *std.build.LibExeObjStep) void {
             exe.linkSystemLibrary("Xcursor");
             exe.linkSystemLibrary("GL");
         } else if (target.isWindows()) {
+            flagContainer.append("-DSOKOL_D3D11") catch unreachable;
             exe.linkSystemLibrary("kernel32");
             exe.linkSystemLibrary("user32");
             exe.linkSystemLibrary("gdi32");
@@ -107,8 +126,8 @@ fn linkImGui(exe: *std.build.LibExeObjStep) void {
     }
 
     // Include dirs.
-    exe.addIncludeDir(path ++ "src/cimgui/imgui");
-    exe.addIncludeDir(path ++ "src/cimgui");
+    exe.addIncludePath(path ++ "src/cimgui/imgui");
+    exe.addIncludePath(path ++ "src/cimgui");
 
     // Add C
     exe.addCSourceFiles(&.{

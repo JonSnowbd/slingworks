@@ -4,7 +4,7 @@ const ig = sling.package.imgui;
 
 const dict = @import("dictionary.zig");
 
-var pathCallback: ?fn ([]const u8) void = null;
+var pathCallback: ?*const fn ([]const u8) void = null;
 
 var folders: std.BoundedArray([128:0]u8, 64) = std.BoundedArray([128:0]u8, 64).init(0) catch unreachable;
 var files: std.BoundedArray([128:0]u8, 256) = std.BoundedArray([128:0]u8, 256).init(0) catch unreachable;
@@ -29,12 +29,12 @@ fn reQuery() void {
     folders.len = 0;
     files.len = 0;
     var currentPathSlice = std.mem.span(&currentPath);
-    var target = std.fs.cwd().openDir(currentPathSlice, .{ .iterate = true }) catch {
+    var target = std.fs.cwd().openIterableDir(currentPathSlice, .{}) catch {
         currentError = "Path error";
         return;
     };
     defer target.close();
-    var iter: std.fs.Dir.Iterator = target.iterate();
+    var iter = target.iterate();
     while (iter.next() catch unreachable) |item| {
         switch (item.kind) {
             .Directory => {

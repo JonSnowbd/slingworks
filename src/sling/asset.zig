@@ -69,7 +69,7 @@ pub fn manualUpload(comptime T: type, object: T) usize {
     wrapper.data.append(object) catch |err| {
         std.debug.panic("Unknown error when fetching from asset lookup hashmap:\n{s}", .{@errorName(err)});
     };
-    sling.logFmt("Asset type \"{s}\" manually uploaded\n", .{@typeName(T)});
+    // sling.logFmt("Asset type \"{any}\" manually uploaded\n", .{@typeName(T)});
     return id;
 }
 

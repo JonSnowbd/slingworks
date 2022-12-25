@@ -10,11 +10,11 @@ const known_folders = @import("deps/known_folders.zig");
 
 const imguiImpl = @import("reroute/imguiPrivate.zig");
 
-var update: fn () callconv(.C) void = undefined;
-var userInit: ?fn () callconv(.C) void = null;
+var update: *const fn () callconv(.C) void = undefined;
+var userInit: ?*const fn () callconv(.C) void = null;
 pub var dt: f32 = 0;
 
-pub fn begin(initMethod: ?fn () callconv(.C) void, updateMethod: fn () callconv(.C) void) void {
+pub fn begin(initMethod: ?*const fn () callconv(.C) void, updateMethod: *const fn () callconv(.C) void) void {
     // Always from the executable:
     var cwd = known_folders.getPath(sling.mem.Allocator, known_folders.KnownFolder.executable_dir) catch unreachable;
     std.os.chdir(cwd.?) catch unreachable;

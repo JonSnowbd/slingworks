@@ -6,7 +6,7 @@ pub const JsonLexicon: serializer.Lexicon = .{ .convert = _jsonLexConv, .parse =
 fn _jsonLexConv(alloc: std.mem.Allocator, tree: *serializer.Tree) []const u8 {
     var bytes = std.ArrayList(u8).init(alloc);
     _jsonLexInner(tree.root, &bytes);
-    return bytes.toOwnedSlice();
+    return bytes.toOwnedSlice() catch unreachable;
 }
 fn _jsonLexInner(node: *serializer.Node, holder: *std.ArrayList(u8)) void {
     switch (node.data) {

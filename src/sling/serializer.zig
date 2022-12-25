@@ -38,8 +38,8 @@ pub const Configuration = struct {
     }
 };
 pub const Lexicon = struct {
-    convert: fn (std.mem.Allocator, *Tree) []const u8,
-    parse: fn (std.mem.Allocator, []const u8) *Tree,
+    convert: *const fn (std.mem.Allocator, *Tree) []const u8,
+    parse: *const fn (std.mem.Allocator, []const u8) *Tree,
 };
 
 pub const TreeAllocator = union(enum) {
@@ -483,7 +483,7 @@ pub const Node = struct {
                 inline for (typeInfo.Union.fields) |field| {
                     if (std.mem.eql(u8, field.name, tagName)) {
                         var nodeData = self.data.Map.get("value").?;
-                        var temporary: field.field_type = undefined;
+                        var temporary: field.type = undefined;
                         nodeData.into(&temporary, owner);
                         ptr.* = @unionInit(T, field.name, temporary);
                         return;
@@ -515,8 +515,8 @@ fn isStringHashmap(comptime T: type) ?type {
         return null;
     }
     if (comptime @hasDecl(T, "Unmanaged") and @hasDecl(T.Unmanaged, "KV")) {
-        if (std.meta.fieldInfo(T.Unmanaged.KV, .key).field_type == []const u8) {
-            const valueType = std.meta.fieldInfo(T.Unmanaged.KV, .value).field_type;
+        if (std.meta.fieldInfo(T.Unmanaged.KV, .key).type == []const u8) {
+            const valueType = std.meta.fieldInfo(T.Unmanaged.KV, .value).type;
             if (T == std.StringHashMap(valueType)) {
                 return valueType;
             }

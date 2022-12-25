@@ -1,7 +1,13 @@
 // machine generated, do not edit
 
+const builtin = @import("builtin");
+const meta = @import("std").meta;
 const sg = @import("gfx.zig");
 
+// helper function to convert a C string to a Zig string slice
+fn cStrToZig(c_str: [*c]const u8) [:0]const u8 {
+  return @import("std").mem.span(c_str);
+}
 // helper function to convert "anything" to a Range struct
 pub fn asRange(val: anytype) Range {
     const type_info = @typeInfo(@TypeOf(val));
@@ -14,17 +20,20 @@ pub fn asRange(val: anytype) Range {
             }
         },
         .Struct, .Array => {
-            return .{ .ptr = &val, .size = @sizeOf(@TypeOf(val)) };
+            switch (builtin.zig_backend) {
+                .stage1 => return .{ .ptr = &val, .size = @sizeOf(@TypeOf(val)) },
+                else => @compileError("Structs and arrays must be passed as pointers to asRange"),
+            }
         },
         else => {
             @compileError("Cannot convert to range!");
-        },
+        }
     }
 }
 
 // std.fmt compatible Writer
 pub const Writer = struct {
-    pub const Error = error{};
+    pub const Error = error { };
     pub fn writeAll(self: Writer, bytes: []const u8) Error!void {
         _ = self;
         for (bytes) |byte| {
@@ -34,7 +43,7 @@ pub const Writer = struct {
     pub fn writeByteNTimes(self: Writer, byte: u8, n: u64) Error!void {
         _ = self;
         var i: u64 = 0;
-        while (i < n) : (i += 1) {
+        while (i < n): (i += 1) {
             putc(byte);
         }
     }
@@ -53,11 +62,12 @@ pub const Range = extern struct {
     size: usize = 0,
 };
 pub const FontDesc = extern struct {
-    data: Range = .{},
+    data: Range = .{ },
     first_char: u8 = 0,
     last_char: u8 = 0,
 };
 pub const ContextDesc = extern struct {
+    max_commands: i32 = 0,
     char_buf_size: i32 = 0,
     canvas_width: f32 = 0.0,
     canvas_height: f32 = 0.0,
@@ -66,11 +76,22 @@ pub const ContextDesc = extern struct {
     depth_format: sg.PixelFormat = .DEFAULT,
     sample_count: i32 = 0,
 };
+pub const Allocator = extern struct {
+    alloc: ?*const fn(usize, ?*anyopaque) callconv(.C) ?*anyopaque = null,
+    free: ?*const fn(?*anyopaque, ?*anyopaque) callconv(.C) void = null,
+    user_data: ?*anyopaque = null,
+};
+pub const Logger = extern struct {
+    log_cb: ?*const fn([*c]const u8, ?*anyopaque) callconv(.C) void = null,
+    user_data: ?*anyopaque = null,
+};
 pub const Desc = extern struct {
     context_pool_size: i32 = 0,
     printf_buf_size: i32 = 0,
     fonts: [8]FontDesc = [_]FontDesc{.{}} ** 8,
-    context: ContextDesc = .{},
+    context: ContextDesc = .{ },
+    allocator: Allocator = .{ },
+    logger: Logger = .{ },
 };
 pub extern fn sdtx_setup([*c]const Desc) void;
 pub fn setup(desc: Desc) void {
@@ -127,6 +148,22 @@ pub fn defaultContext() Context {
 pub extern fn sdtx_draw() void;
 pub fn draw() void {
     sdtx_draw();
+}
+pub extern fn sdtx_context_draw(Context) void;
+pub fn contextDraw(ctx: Context) void {
+    sdtx_context_draw(ctx);
+}
+pub extern fn sdtx_draw_layer(i32) void;
+pub fn drawLayer(layer_id: i32) void {
+    sdtx_draw_layer(layer_id);
+}
+pub extern fn sdtx_context_draw_layer(Context, i32) void;
+pub fn contextDrawLayer(ctx: Context, layer_id: i32) void {
+    sdtx_context_draw_layer(ctx, layer_id);
+}
+pub extern fn sdtx_layer(i32) void;
+pub fn layer(layer_id: i32) void {
+    sdtx_layer(layer_id);
 }
 pub extern fn sdtx_font(u32) void;
 pub fn font(font_index: u32) void {
@@ -198,9 +235,9 @@ pub fn putc(c: u8) void {
 }
 pub extern fn sdtx_puts([*c]const u8) void;
 pub fn puts(str: [:0]const u8) void {
-    sdtx_puts(@ptrCast([*c]const u8, str));
+    sdtx_puts(@ptrCast([*c]const u8,str));
 }
 pub extern fn sdtx_putr([*c]const u8, i32) void;
 pub fn putr(str: [:0]const u8, len: i32) void {
-    sdtx_putr(@ptrCast([*c]const u8, str), len);
+    sdtx_putr(@ptrCast([*c]const u8,str), len);
 }

@@ -6,7 +6,7 @@ pub const RAD_2_DEG = 57.2958;
 pub const DEG_2_RAD = 0.0174533;
 
 fn Int(comptime signedness: std.builtin.Signedness, comptime bit_count: u16) type {
-    return @Type(std.builtin.TypeInfo{
+    return @Type(std.builtin.Type{
         .Int = .{
             .signedness = signedness,
             .bits = bit_count,
@@ -14,7 +14,7 @@ fn Int(comptime signedness: std.builtin.Signedness, comptime bit_count: u16) typ
     });
 }
 fn Float(comptime bit_count: u16) type {
-    return @Type(std.builtin.TypeInfo{
+    return @Type(std.builtin.Type{
         .Float = .{
             .bits = bit_count,
         },

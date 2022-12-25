@@ -82,6 +82,7 @@ drawCalls: usize = 0,
 whitePixelId: usize,
 
 pub fn init() Self {
+    
     // Create image to represent a white pixel for primitives.
     var desc = sg.ImageDesc{
         .width = 1,
@@ -92,9 +93,10 @@ pub fn init() Self {
     };
     desc.data.subimage[0][0] = sg.asRange([_]u32{0xFFFFFFFF});
     var whitePix = sg.makeImage(desc);
-    sling.logFmt("SLING: Uploaded image #{any} to the gpu. ({any}x{any})", .{ whitePix.id, desc.width, desc.height });
+    sling.logFmt("Uploaded image #{any} to the gpu. ({any}x{any})", .{ whitePix.id, desc.width, desc.height });
 
     var objDump = sling.asset.manualUpload(sling.Texture, whitePix);
+
     return .{
         .fba = std.heap.FixedBufferAllocator.init(sling.mem.Allocator.alloc(u8, 12_000_000) catch unreachable),
         .pipeline = RenderPipeline.init(sling.mem.Allocator, PipelineShader, "imgui"),
@@ -116,6 +118,7 @@ pub fn finish(self: *Self) void {
     self.worldRequests.clearRetainingCapacity();
     self.screenRequests.clearRetainingCapacity();
     self.fba.reset();
+    
 }
 
 fn drawRequests(self: *Self, target: *std.ArrayList(RenderRequest)) void {

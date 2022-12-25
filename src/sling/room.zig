@@ -7,9 +7,9 @@ pub const Register = struct {
     /// The name of the room, used for debug purposes, and as a display if register is
     /// placed in the room entry
     name: []const u8,
-    updateMethod: ?fn () void = null,
-    initMethod: ?fn () void = null,
-    deinitMethod: ?fn () void = null,
+    updateMethod: ?*const fn () void = null,
+    initMethod: ?*const fn () void = null,
+    deinitMethod: ?*const fn () void = null,
 };
 
 /// Entering this room duplicates the current scene being edited, and then plays it

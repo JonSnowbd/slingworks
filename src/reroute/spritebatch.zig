@@ -4,7 +4,7 @@ const reroute = @import("main.zig");
 const std = @import("std");
 
 /// Takes a vertex type and returns a renderer that uses textures to draw.
-pub fn Generate(comptime Vertex: type, MaxQuads: usize) type {
+pub fn Generate(comptime Vertex: type, comptime MaxQuads: usize) type {
     return struct {
         const MaxVertCount = MaxQuads * 4;
         const MaxIndCount = MaxQuads * 6;
@@ -30,7 +30,7 @@ pub fn Generate(comptime Vertex: type, MaxQuads: usize) type {
             sg.pushDebugGroup("Pipeline Initialization");
             comptime var prog: []const u8 = "";
             inline for (programName) |ascii| {
-                prog = prog ++ &[_]u8{std.ascii.toLower(ascii)};
+                comptime prog = prog ++ &[_]u8{std.ascii.toLower(ascii)};
             }
             const shaderDesc = @field(shader, prog ++ "ShaderDesc")(sg.queryBackend());
 
@@ -49,7 +49,7 @@ pub fn Generate(comptime Vertex: type, MaxQuads: usize) type {
             pipelineDesc.colors[0].blend.src_factor_rgb = sg.BlendFactor.SRC_ALPHA;
             pipelineDesc.colors[0].blend.dst_factor_rgb = sg.BlendFactor.ONE_MINUS_SRC_ALPHA;
             inline for (std.meta.fields(Vertex)) |field, i| {
-                switch (field.field_type) {
+                switch (field.type) {
                     f32 => {
                         pipelineDesc.layout.attrs[i].format = .FLOAT;
                     },
@@ -63,7 +63,7 @@ pub fn Generate(comptime Vertex: type, MaxQuads: usize) type {
                         pipelineDesc.layout.attrs[i].format = .FLOAT4;
                     },
                     else => {
-                        @compileError("Cant have a " ++ @typeName(field.field_type) ++ " in this buffer.");
+                        @compileError("Cant have a " ++ @typeName(field.type) ++ " in this buffer.");
                     },
                 }
             }

@@ -69,7 +69,7 @@ const FontCreationConfig = struct {
         }
         var io = ig.igGetIO();
         // Font stuff, move into config later.
-        var pixels: [*c]u8 = undefined;
+        var pixels: [*]u8 = undefined;
         var w: c_int = undefined;
         var h: c_int = undefined;
         var bpp: c_int = undefined;
@@ -85,7 +85,7 @@ const FontCreationConfig = struct {
         // imageDesc.mag_filter = if (self.nearestNeighbour) sg.Filter.NEAREST else sg.Filter.LINEAR;
         // imageDesc.label = "imgui_font";
         imageDesc.data.subimage[0][0].ptr = pixels;
-        imageDesc.data.subimage[0][0].size = @intCast(usize, w * h);
+        imageDesc.data.subimage[0][0].size = @intCast(usize, w * h) * @sizeOf(u32);
 
         var image = sg.makeImage(imageDesc);
 

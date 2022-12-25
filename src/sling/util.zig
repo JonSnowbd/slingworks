@@ -6,8 +6,8 @@ const ig = sling.package.imgui;
 /// aimed at a declaration in a type.
 pub fn DeclEnum(comptime T: type) type {
     const declInfos = std.meta.declarations(T);
-    var declFields: [declInfos.len]std.builtin.TypeInfo.EnumField = undefined;
-    var decls = [_]std.builtin.TypeInfo.Declaration{};
+    var declFields: [declInfos.len]std.builtin.Type.EnumField = undefined;
+    var decls = [_]std.builtin.Type.Declaration{};
     inline for (declInfos) |field, i| {
         declFields[i] = .{
             .name = field.name,
@@ -16,7 +16,6 @@ pub fn DeclEnum(comptime T: type) type {
     }
     return @Type(.{
         .Enum = .{
-            .layout = .Auto,
             .tag_type = std.math.IntFittingRange(0, declInfos.len - 1),
             .fields = &declFields,
             .decls = &decls,

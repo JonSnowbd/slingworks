@@ -20,13 +20,13 @@ pub const Information = struct {
     var registeredObjects = std.ArrayList(*const Information).init(sling.mem.Allocator);
 
     name: []const u8,
-    autoCreate: fn (*sling.Scene) *Interface,
-    autoCreateFrom: fn (*sling.serializer.Node, *sling.Scene) *Interface,
-    create: fn (*sling.Scene) *Interface,
-    createSingleton: fn (*sling.Scene) *Interface,
-    createFrom: fn (*sling.serializer.Node, *sling.Scene) *Interface,
-    createSingletonFrom: fn (*sling.serializer.Node, *sling.Scene) *Interface,
-    isShadow: fn () bool,
+    autoCreate: *const fn (*sling.Scene) *Interface,
+    autoCreateFrom: *const fn (*sling.serializer.Node, *sling.Scene) *Interface,
+    create: *const fn (*sling.Scene) *Interface,
+    createSingleton: *const fn (*sling.Scene) *Interface,
+    createFrom: *const fn (*sling.serializer.Node, *sling.Scene) *Interface,
+    createSingletonFrom: *const fn (*sling.serializer.Node, *sling.Scene) *Interface,
+    isShadow: *const fn () bool,
 
     pub fn register(info: *const Information) void {
         var id = registeredObjects.items.len;
@@ -69,9 +69,9 @@ pub const Interface = struct {
     /// a heap allocated instance of the object.
     information: *const Information,
     data: DataUnion,
-    serialize: fn (*Interface, *sling.serializer.Tree) *sling.serializer.Node,
-    update: fn (*Interface) void,
-    deinitAll: fn (*Interface) void,
+    serialize: *const fn (*Interface, *sling.serializer.Tree) *sling.serializer.Node,
+    update: *const fn (*Interface) void,
+    deinitAll: *const fn (*Interface) void,
 
     pub const DataUnion = union(ObjectType) {
         Collection: Collection,
@@ -79,21 +79,21 @@ pub const Interface = struct {
     };
     pub const Collection = struct {
         /// Emits imgui calls to edit a specific indexed object.
-        editor: fn (*Interface, usize) void,
+        editor: *const fn (*Interface, usize) void,
         /// Queues an entity index for deletion at the end of the current iteration.
-        remove: fn (*Interface, usize) void,
+        remove: *const fn (*Interface, usize) void,
         /// Creates a new object inside of the container
-        append: fn (*Interface) void,
+        append: *const fn (*Interface) void,
         /// Gets the amount of objects
-        getCount: fn (*Interface) usize,
+        getCount: *const fn (*Interface) usize,
         /// The objects inside can be represented by non-generic text, this gets those names.
-        getName: fn (*Interface, usize) []const u8,
+        getName: *const fn (*Interface, usize) []const u8,
         /// Copies all the data from the first index into the second.
-        copyFromTo: fn (*Interface, usize, usize) void,
+        copyFromTo: *const fn (*Interface, usize, usize) void,
     };
     pub const Singleton = struct {
-        editor: fn (*Interface) void,
-        getName: fn (*Interface) []const u8,
+        editor: *const fn (*Interface) void,
+        getName: *const fn (*Interface) []const u8,
     };
 };
 
@@ -144,13 +144,13 @@ pub fn GenBuildData(comptime T: type) type {
                     inline for (@typeInfo(T).Struct.decls) |declField| {
                         if (declField.is_pub) {
                             const fnTypeInfo = @typeInfo(@TypeOf(@field(T, declField.name)));
-                            if (fnTypeInfo == .Fn and fnTypeInfo.Fn.args.len > 0) {
+                            if (fnTypeInfo == .Fn and fnTypeInfo.Fn.params.len > 0) {
                                 var name: []const u8 = declField.name;
                                 if (std.mem.eql(u8, name, self.func)) {
                                     const feed = ArgType(fnTypeInfo);
                                     var paramList: feed = undefined;
-                                    inline for (fnTypeInfo.Fn.args) |fnArg, i| {
-                                        if (fnArg.arg_type) |parameter| {
+                                    inline for (fnTypeInfo.Fn.params) |fnArg, i| {
+                                        if (fnArg.type) |parameter| {
                                             switch (parameter) {
                                                 *sling.Scene => {
                                                     paramList[i] = scene;
@@ -168,7 +168,7 @@ pub fn GenBuildData(comptime T: type) type {
                                         }
                                     }
                                     const func = @field(T, declField.name);
-                                    const site = std.builtin.CallOptions{};
+                                    const site = std.builtin.CallModifier.auto;
                                     _ = @call(site, func, paramList);
                                     return;
                                 }
@@ -182,15 +182,15 @@ pub fn GenBuildData(comptime T: type) type {
                     inline for (@typeInfo(T).Struct.decls) |declField| {
                         if (declField.is_pub) {
                             const fnTypeInfo = @typeInfo(@TypeOf(@field(T, declField.name)));
-                            if (fnTypeInfo == .Fn and fnTypeInfo.Fn.args.len > 0) {
+                            if (fnTypeInfo == .Fn and fnTypeInfo.Fn.params.len > 0) {
                                 var name: []const u8 = declField.name;
                                 if (std.mem.eql(u8, name, self.func)) {
                                     const feed = ArgType(fnTypeInfo);
                                     var paramList: feed = undefined;
                                     comptime var targetIndex: ?usize = null;
                                     comptime var indexIndex: ?usize = null;
-                                    inline for (fnTypeInfo.Fn.args) |fnArg, i| {
-                                        if (fnArg.arg_type) |parameter| {
+                                    inline for (fnTypeInfo.Fn.params) |fnArg, i| {
+                                        if (fnArg.type) |parameter| {
                                             switch (parameter) {
                                                 *sling.Scene => {
                                                     paramList[i] = scene;
@@ -215,7 +215,7 @@ pub fn GenBuildData(comptime T: type) type {
                                         if (indexIndex) |idx| {
                                             paramList[idx] = j;
                                         }
-                                        const site = std.builtin.CallOptions{};
+                                        const site = std.builtin.CallModifier.auto;
                                         _ = @call(site, func, paramList);
                                     }
                                     return;
@@ -232,7 +232,7 @@ pub fn GenBuildData(comptime T: type) type {
         _init: std.ArrayList(FnWrap),
         _deinitFn: std.ArrayList(FnWrap),
         _update: std.ArrayList(FnWrap),
-        _getName: ?fn (*T) []const u8,
+        _getName: ?*const fn (*T) []const u8,
         _prefersSingleton: bool,
         _prefersShadow: bool,
         _editorExtension: ?FnWrap,
@@ -359,27 +359,27 @@ pub fn GenBuildData(comptime T: type) type {
         }
     };
 }
-fn ArgType(comptime Fn: std.builtin.TypeInfo) type {
+fn ArgType(comptime Fn: std.builtin.Type) type {
     if (Fn != .Fn) {
         @compileError(std.fmt.comptimePrint("Type '{any}' doesnt fit the format for a method call.", .{Fn}));
     }
     return comptime blk: {
-        var fields: [Fn.Fn.args.len]std.builtin.TypeInfo.StructField = undefined;
+        var fields: [Fn.Fn.params.len]std.builtin.Type.StructField = undefined;
         for (fields) |*f, idx| {
             var num_buf: [128]u8 = undefined;
             f.* = .{
                 .name = std.fmt.bufPrint(&num_buf, "{}", .{idx}) catch unreachable,
-                .field_type = Fn.Fn.args[idx].arg_type.?,
-                .default_value = @as(?(Fn.Fn.args[idx].arg_type.?), null),
+                .type = Fn.Fn.params[idx].type.?,
+                .default_value = @as(?(Fn.Fn.params[idx].type.?), null),
                 .is_comptime = false,
-                .alignment = @alignOf(Fn.Fn.args[idx].arg_type.?),
+                .alignment = @alignOf(Fn.Fn.params[idx].type.?),
             };
         }
         break :blk @Type(.{
             .Struct = .{
                 .layout = .Auto,
                 .fields = &fields,
-                .decls = &[0]std.builtin.TypeInfo.Declaration{},
+                .decls = &[0]std.builtin.Type.Declaration{},
                 .is_tuple = true,
             },
         });

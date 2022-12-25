@@ -1,0 +1,1 @@
+./bin-dev/win32/sokol-shdc.exe --input ./src/reroute/shaders_raw/imgui.glsl --output ./src/reroute/shaders/imgui.glsl.zig --slang glsl330:hlsl4:metal_macos --format sokol_zig

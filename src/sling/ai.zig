@@ -22,7 +22,7 @@ pub fn StateMachine(comptime TaggedUnion: type, comptime Context: type) type {
             const info = @typeInfo(TaggedUnion).Union;
             inline for (info.fields) |field_info| {
                 if (std.mem.eql(u8, field_info.name, @tagName(activeTag))) {
-                    const T = field_info.field_type;
+                    const T = field_info.type;
                     if (@hasDecl(T, "update")) {
                         if (T.update(&@field(self.currentState, field_info.name), context)) |newState| {
                             if (@hasDecl(T, "leave")) {
@@ -42,7 +42,7 @@ pub fn StateMachine(comptime TaggedUnion: type, comptime Context: type) type {
             const info = @typeInfo(TaggedUnion).Union;
             inline for (info.fields) |field_info| {
                 if (std.mem.eql(u8, field_info.name, @tagName(nextTag))) {
-                    const T = field_info.field_type;
+                    const T = field_info.type;
                     if (@hasDecl(T, "enter")) {
                         T.enter(&@field(self.currentState, field_info.name), context);
                     }

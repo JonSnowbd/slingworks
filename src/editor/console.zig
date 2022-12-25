@@ -4,7 +4,7 @@ const ig = sling.package.imgui;
 const dict = @import("dictionary.zig");
 
 const LogType = struct {
-    icon: ?[]const u8,
+    icon: []const u8,
     ownedText: []const u8,
     color: sling.math.Vec4,
 };
@@ -30,7 +30,7 @@ pub fn update() void {
 /// However, as you're expected to pass in a static member from `icon.zig` for icon, it is not copied.
 pub fn submit(message: []const u8, color: sling.math.Vec4, icon: ?[]const u8) void {
     log.append(.{
-        .icon = icon,
+        .icon = if(icon == null) "!" else icon.?,
         .ownedText = sling.mem.Allocator.dupeZ(u8, message) catch unreachable,
         .color = color,
     }) catch unreachable;
@@ -40,7 +40,7 @@ pub fn submit(message: []const u8, color: sling.math.Vec4, icon: ?[]const u8) vo
 pub fn submitFmt(comptime fmt: []const u8, params: anytype, color: sling.math.Vec4, icon: ?[]const u8) void {
     var owned = std.fmt.allocPrintZ(sling.mem.Allocator, fmt, params) catch unreachable;
     log.append(.{
-        .icon = icon,
+        .icon = if(icon == null) "!" else icon.?,
         .ownedText = owned,
         .color = color,
     }) catch unreachable;

@@ -95,8 +95,8 @@ pub const InitialRunSettings = struct {
 };
 var launchSettings: InitialRunSettings = .{};
 
-var initFunctions: std.ArrayList(fn () void) = std.ArrayList(fn () void).init(mem.Allocator);
-var loopFunctions: std.ArrayList(fn () void) = std.ArrayList(fn () void).init(mem.Allocator);
+var initFunctions: std.ArrayList(*const fn () void) = std.ArrayList(*const fn () void).init(mem.Allocator);
+var loopFunctions: std.ArrayList(*const fn () void) = std.ArrayList(*const fn () void).init(mem.Allocator);
 
 // We stored and launched scenes here
 var coldStorage: std.StringArrayHashMap(*Scene) = std.StringArrayHashMap(*Scene).init(mem.Allocator);
@@ -176,6 +176,7 @@ pub fn run(settings: InitialRunSettings) void {
 
 export fn sling_init() void {
     render = package.Renderer.init();
+    
 
     if (launchSettings.fontBytes) |fb| {
         dict.iconify();
@@ -196,6 +197,7 @@ export fn sling_init() void {
         var font = imgui.config.startFontCreation();
         font.build();
     }
+    
     room.ListedRooms.append(&room.PlayEditorScene) catch unreachable;
     for (initFunctions.items) |ifn| {
         ifn();
@@ -234,7 +236,7 @@ pub fn integrate(comptime T: type) void {
     if (@hasDecl(T, "slingIntegration")) {
         switch (@typeInfo(@TypeOf(@field(T, "slingIntegration")))) {
             .Fn => |fnInfo| {
-                if (fnInfo.args.len == 0 and (fnInfo.return_type == null or fnInfo.return_type.? == void)) {
+                if (fnInfo.params.len == 0 and (fnInfo.return_type == null or fnInfo.return_type.? == void)) {
                     T.slingIntegration();
                 } else {
                     @compileError("'slingIntegration' on type " ++ @typeName(T) ++ " failed, it should be a function with no args and no return type.");
@@ -266,12 +268,12 @@ pub fn configure(comptime T: type) *Object.GenBuildData(T) {
 }
 /// Adds an init function as a function to be ran after everything is initialized, do your
 /// global asset loading here, or anything you need to do with imgui.
-pub fn configureInit(initFn: fn () void) void {
+pub fn configureInit(initFn: *const fn () void) void {
     initFunctions.append(initFn) catch unreachable;
 }
 /// Adds an loop function as a function to be ran before each update loop. This is pretty
 /// niche and should be used sparingly.
-pub fn configureLoop(loopFn: fn () void) void {
+pub fn configureLoop(loopFn: *const fn () void) void {
     loopFunctions.append(loopFn) catch unreachable;
 }
 /// Give in a type you've configured, to be used as a scene that can be created and edited inside
@@ -317,7 +319,7 @@ pub fn logFmt(comptime fmt: []const u8, params: anytype) void {
     if (state.isEditing or state.room != null) {
         console.submitFmt(fmt, params, theme.primary, dict.logIconNormal);
     } else {
-        std.debug.print("SLING: {s}\n", .{std.fmt.allocPrint(mem.RingBuffer, fmt, params)});
+        std.debug.print("SLING: {s}\n", .{std.fmt.allocPrint(mem.RingBuffer, fmt, params) catch unreachable});
     }
 }
 /// Error log, forwards the message to the editor log if in editor, or stdout if not.
@@ -333,7 +335,7 @@ pub fn logErrFmt(comptime fmt: []const u8, params: anytype) void {
     if (state.isEditing or state.room != null) {
         console.submitFmt(fmt, params, theme.debugError, dict.logIconError);
     } else {
-        std.debug.print("!SLING!: {s}\n", .{std.fmt.allocPrint(mem.RingBuffer, fmt, params)});
+        std.debug.print("!SLING!: {s}\n", .{std.fmt.allocPrint(mem.RingBuffer, fmt, params) catch unreachable});
     }
 }
 /// Warning log, forwards the message to the editor log if in editor, or stdout if not.
@@ -349,6 +351,6 @@ pub fn logWarnFmt(comptime fmt: []const u8, params: anytype) void {
     if (state.isEditing or state.room != null) {
         console.submitFmt(fmt, params, theme.debugWarning, dict.logIconWarn);
     } else {
-        std.debug.print("SLING Warn: {s}\n", .{std.fmt.allocPrint(mem.RingBuffer, fmt, params)});
+        std.debug.print("SLING Warn: {s}\n", .{std.fmt.allocPrint(mem.RingBuffer, fmt, params) catch unreachable});
     }
 }

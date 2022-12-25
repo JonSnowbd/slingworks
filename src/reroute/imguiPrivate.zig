@@ -181,7 +181,7 @@ pub fn render() void {
     }
 
     // Pre allocate all memory:
-    for (groups.*.CmdLists.?[0..@intCast(usize, groups.*.CmdListsCount)]) |commands| {
+    for (groups.*.CmdLists[0..@intCast(usize, groups.*.CmdListsCount)]) |commands| {
         var i: c_int = 0;
         while (i < commands.*.VtxBuffer.Size) : (i += 1) {
             var colorSplit = @bitCast([4]u8, commands.*.VtxBuffer.Data[@intCast(usize, i)].col);
@@ -201,13 +201,17 @@ pub fn render() void {
     sg.updateBuffer(bindings.index_buffer, sg.asRange(indices.items));
     var vbOffset: i32 = 0;
     var ibOffset: i32 = 0;
-    for (groups.*.CmdLists.?[0..@intCast(usize, groups.*.CmdListsCount)]) |commands| {
+    for (groups.*.CmdLists[0..@intCast(usize, groups.*.CmdListsCount)]) |commands| {
+        var w = sapp.widthf();
+        var h = sapp.heightf();
+
+        // Make the ortho projection
         // Set up render state
         var params = shader.Params{
-            .ProjMtx = math.Matrix.createOrthogonal(0, sapp.widthf(), sapp.heightf(), 0, -1, 1).inlined(),
+            .ProjMtx = math.Matrix.createOrthogonal(0, w, h, 0, 0, 1).inlined(),
         };
         sg.applyPipeline(pipeline);
-        sg.applyUniforms(.VS, 0, sg.asRange(params));
+        sg.applyUniforms(.VS, 0, sg.asRange(&params));
         // Draw out the commands
         var baseElement: c_uint = 0;
         var currentTexture: u32 = 0;
